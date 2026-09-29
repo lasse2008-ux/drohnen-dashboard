@@ -1,0 +1,808 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Drohnen-Telemetrie</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%20width%3D%2230%22%20height%3D%2230%22%20aria-hidden%3D%22true%22%3E%3Cg%20stroke%3D%22%2300f0ff%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%3E%3Cline%20x1%3D%229%22%20y1%3D%229%22%20x2%3D%2223%22%20y2%3D%2223%22%2F%3E%3Cline%20x1%3D%2223%22%20y1%3D%229%22%20x2%3D%229%22%20y2%3D%2223%22%2F%3E%3C%2Fg%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%2300f0ff%22%20stroke-width%3D%221.6%22%3E%3Ccircle%20cx%3D%226.5%22%20cy%3D%226.5%22%20r%3D%224.2%22%2F%3E%3Ccircle%20cx%3D%2225.5%22%20cy%3D%226.5%22%20r%3D%224.2%22%2F%3E%3Ccircle%20cx%3D%226.5%22%20cy%3D%2225.5%22%20r%3D%224.2%22%2F%3E%3Ccircle%20cx%3D%2225.5%22%20cy%3D%2225.5%22%20r%3D%224.2%22%2F%3E%3C%2Fg%3E%3Crect%20x%3D%2212.5%22%20y%3D%2212.5%22%20width%3D%227%22%20height%3D%227%22%20rx%3D%221.5%22%20fill%3D%22%230a0a0c%22%20stroke%3D%22%23ff2bd6%22%20stroke-width%3D%221.6%22%2F%3E%3C%2Fsvg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --panel: rgba(9,10,12,.88); --text: #b4bac4; --strong: #f2f4f7; --muted: #747c89;
+    --accent: #00f0ff; --accent-soft: rgba(0,240,255,.12); --pink: #ff2bd6; --yellow: #fcee0a; --line: rgba(255,255,255,.09);
+    --good: #39ff88; --bad: #ff3d9a;
+    --ui: "Rajdhani", "Segoe UI", system-ui, sans-serif; --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+    --cut: 18px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { background: #101114; }
+  body {
+    font-family: var(--ui); font-size: 1.05rem; font-weight: 500; line-height: 1.45; color: var(--text);
+    background-color: #101114;
+    background-image:
+      linear-gradient(27deg, #151618 5px, transparent 5px), linear-gradient(207deg, #151618 5px, transparent 5px),
+      linear-gradient(27deg, #222 5px, transparent 5px), linear-gradient(207deg, #222 5px, transparent 5px),
+      linear-gradient(90deg, #1b1b1b 10px, transparent 10px),
+      linear-gradient(#1d1d1d 25%, #1a1a1a 25%, #1a1a1a 50%, transparent 50%, transparent 75%, #242424 75%, #242424);
+    background-position: 0 5px, 10px 0, 0 10px, 10px 5px, 0 0, 0 0;
+    background-size: 20px 20px;
+    min-height: 100vh;
+  }
+  body::before { content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: radial-gradient(800px 360px at 12% -80px, rgba(0,240,255,.20), transparent 70%), radial-gradient(700px 320px at 92% -60px, rgba(255,43,214,.20), transparent 70%), radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,.7) 100%); }
+  body::after { content: ""; position: fixed; inset: 0; z-index: 50; pointer-events: none; opacity: .5; background: repeating-linear-gradient(0deg, rgba(0,0,0,.22) 0 1px, transparent 1px 3px); }
+  .page { position: relative; z-index: 1; max-width: 1180px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  header { position: relative; padding: 8px 0 26px; overflow: hidden; }
+  header::before { content: ""; position: absolute; inset: 0 -40px 0 -40px; pointer-events: none;
+    background: repeating-linear-gradient(100deg, transparent 0 46px, rgba(0,240,255,.12) 46px 48px, transparent 48px 83px, rgba(255,43,214,.10) 83px 85px, transparent 85px 120px);
+    animation: rush 1.4s linear infinite; mask-image: linear-gradient(90deg, transparent, #000 30%, #000 70%, transparent); -webkit-mask-image: linear-gradient(90deg, transparent, #000 30%, #000 70%, transparent); }
+  @keyframes rush { to { background-position: -168px 0; } }
+  .status { position: relative; font-family: var(--mono); font-size: .72rem; letter-spacing: .14em; color: var(--accent); text-transform: uppercase; display: flex; gap: 14px; align-items: center; }
+  .status svg { flex: none; margin-left: 2px; filter: drop-shadow(0 0 6px rgba(0,240,255,.6)); }
+  @keyframes pulse { 50% { opacity: .25; } }
+  h1 { position: relative; margin-top: 6px; font-size: clamp(2.4rem, 7vw, 4.2rem); font-weight: 700; font-style: italic; text-transform: uppercase; letter-spacing: .03em; line-height: 1; color: var(--strong); transform: skewX(-8deg); transform-origin: left; }
+  h1 span { position: relative; display: inline-block; color: var(--accent); text-shadow: 0 0 22px rgba(0,240,255,.7), 0 0 60px rgba(0,240,255,.35); }
+  h1 span::before, h1 span::after { content: attr(data-t); position: absolute; left: 0; top: 0; width: 100%; overflow: hidden; pointer-events: none; text-shadow: none; clip-path: inset(0 0 100% 0); }
+  h1 span::before { color: var(--pink); animation: glitchA 3.4s infinite steps(1); }
+  h1 span::after { color: var(--yellow); animation: glitchB 3.4s infinite steps(1); }
+  @keyframes glitchA { 0%,90%,100% { clip-path: inset(0 0 100% 0); transform: none; } 91% { clip-path: inset(15% 0 55% 0); transform: translate(-6px,0); } 94% { clip-path: inset(60% 0 8% 0); transform: translate(5px,0); } 97% { clip-path: inset(35% 0 40% 0); transform: translate(-3px,0); } }
+  @keyframes glitchB { 0%,91%,100% { clip-path: inset(0 0 100% 0); transform: none; } 92% { clip-path: inset(50% 0 20% 0); transform: translate(6px,0); } 95% { clip-path: inset(8% 0 70% 0); transform: translate(-5px,0); } 98% { clip-path: inset(72% 0 5% 0); transform: translate(3px,0); } }
+  .sub { position: relative; margin-top: 10px; max-width: 58ch; color: var(--muted); font-size: 1.05rem; }
+
+  .label { font-size: .85rem; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--strong); margin-bottom: 16px; display: flex; align-items: center; gap: 12px; }
+  .label::before { content: ""; flex: none; width: 26px; height: 10px; background: repeating-linear-gradient(115deg, var(--accent) 0 5px, transparent 5px 9px, var(--pink) 9px 14px, transparent 14px 18px); width: 34px; }
+  .group { margin: 44px 0 -8px; }
+
+  .bar { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0 8px; position: relative; }
+  button, .btn { font: inherit; font-size: .95rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--strong);
+    background: rgba(255,255,255,.07); border: 0; padding: 11px 26px; cursor: pointer; transition: .18s;
+    clip-path: polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%); }
+  button:hover, .btn:hover { background: rgba(255,255,255,.14); color: var(--accent); }
+  button.primary { background: var(--accent); color: #001418; }
+  button.primary { box-shadow: 0 0 18px rgba(0,240,255,.35); }
+  button.primary:hover { background: var(--pink); color: #14000f; box-shadow: 0 0 26px rgba(255,43,214,.6); }
+  button.danger:hover { color: var(--bad); }
+  #drop { position: relative; margin: 14px 0 0; padding: 16px; border: 1px dashed rgba(255,255,255,.18); text-align: center; font-size: .95rem; letter-spacing: .06em; color: var(--muted); transition: .2s; background: rgba(0,0,0,.35); }
+  #drop.over { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+  #msg { position: relative; margin-top: 10px; min-height: 1.4em; font-family: var(--mono); font-size: .78rem; color: var(--muted); }
+  #msg.err { color: var(--bad); }
+
+  .panel { position: relative; margin-top: 26px; padding: 24px; background: var(--panel); border-left: 3px solid var(--accent); box-shadow: inset 8px 0 16px -12px var(--accent), inset 0 0 0 1px rgba(0,240,255,.05);
+    clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, var(--cut) 100%, 0 calc(100% - var(--cut))); }
+  .panel::after { content: ""; position: absolute; top: 0; right: 0; width: var(--cut); height: var(--cut);
+    background: linear-gradient(to bottom left, transparent calc(50% - 1px), var(--accent) calc(50% - 1px), var(--accent) calc(50% + 1px), transparent calc(50% + 1px)); }
+  .empty { text-align: center; padding: 70px 20px; color: var(--muted); letter-spacing: .04em; }
+
+  /* Ausfahrbare Bereiche */
+  .fold { padding: 0; }
+  .fold > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 14px; padding: 20px 56px 20px 24px; position: relative; transition: background .18s; }
+  .fold > summary::-webkit-details-marker { display: none; }
+  .fold > summary:hover { background: rgba(255,255,255,.04); }
+  .fold > summary .label { margin: 0; }
+  .fold > summary .hint { color: var(--muted); font-size: .92rem; }
+  .fold > summary::after { content: ""; position: absolute; right: 30px; top: 50%; width: 10px; height: 10px; margin-top: -8px;
+    border-right: 2px solid var(--accent); border-bottom: 2px solid var(--accent); transform: rotate(45deg); transition: transform .25s; }
+  .fold[open] > summary::after { transform: rotate(-135deg); margin-top: -2px; }
+  .fold-body { padding: 4px 24px 26px; border-top: 1px solid var(--line); }
+  .fold-body > *:first-child { margin-top: 20px; }
+  .sublabel { margin: 26px 0 10px; font-size: .78rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
+  .tile { position: relative; padding: 16px 18px 18px; background: rgba(255,255,255,.04); clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%); }
+  .tile .k { font-size: .78rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+  .tile .v { font-family: var(--mono); font-weight: 700; font-size: 2.2rem; color: var(--strong); line-height: 1.15; margin-top: 4px; }
+  .tile .v small { font-size: .9rem; color: var(--muted); font-weight: 500; margin-left: 4px; }
+  .tile .d { font-family: var(--mono); font-size: .75rem; margin-top: 2px; min-height: 1.1em; color: var(--muted); }
+  .tile .d.good { color: var(--good); } .tile .d.bad { color: var(--bad); }
+  .tile .gauge { height: 8px; margin-top: 12px; background: repeating-linear-gradient(90deg, rgba(255,255,255,.07) 0 6px, transparent 6px 9px); }
+  .tile .gauge b { display: block; height: 100%; background: repeating-linear-gradient(90deg, rgba(0,240,255,.55) 0 6px, transparent 6px 9px); }
+  .who { font-size: .8rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: -6px 0 14px; }
+  .who b { color: var(--strong); }
+  .verdict { margin-top: 16px; padding: 12px 16px; background: rgba(255,255,255,.04); border-left: 3px solid var(--muted); }
+  .verdict.good { border-color: var(--good); } .verdict.warn { border-color: #facc15; } .verdict.bad { border-color: var(--bad); }
+  .verdict b { color: var(--strong); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; }
+  .chip { display: flex; align-items: center; gap: 10px; padding: 9px 10px 9px 18px; background: rgba(255,255,255,.05); cursor: pointer; user-select: none; transition: .18s;
+    font-weight: 600; letter-spacing: .05em; clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); box-shadow: inset 3px 0 0 var(--muted); }
+  .chip .dot { width: 9px; height: 9px; background: var(--muted); transform: skewX(-20deg); }
+  .chip.on { background: rgba(255,255,255,.1); color: var(--strong); box-shadow: inset 3px 0 0 var(--c); }
+  .chip.on .dot { background: var(--c); box-shadow: 0 0 10px var(--c); }
+  .chip small { font-family: var(--mono); font-size: .68rem; color: var(--muted); font-weight: 400; }
+  .chip .x { padding: 0 12px 0 6px; background: none; clip-path: none; font-size: 1.1rem; color: var(--muted); letter-spacing: 0; }
+  .chip .x:hover { color: var(--bad); background: none; }
+  .chip .x.ed { padding: 0 2px 0 6px; font-size: 1rem; }
+  .chip .x.ed:hover { color: var(--accent); }
+  .chip small.loc { color: var(--accent); font-family: var(--ui); font-size: .8rem; font-weight: 600; letter-spacing: .04em; }
+  dialog { margin: auto; border: 0; padding: 26px; width: min(420px, calc(100vw - 32px)); background: #0a0b0e; color: var(--text); border-left: 3px solid var(--accent);
+    box-shadow: 0 0 0 1px var(--line), 0 20px 80px rgba(0,0,0,.8), 0 0 40px rgba(0,240,255,.12); clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%); }
+  dialog::backdrop { background: rgba(0,0,0,.7); backdrop-filter: blur(3px); }
+  dialog h3 { color: var(--strong); font-size: 1.1rem; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 16px; }
+  dialog label { display: block; font-size: .78rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-top: 14px; }
+  dialog input { display: block; width: 100%; margin-top: 6px; font: inherit; font-size: 1rem; color: var(--strong); background: #06070a; border: 1px solid var(--line); padding: 10px 12px; outline: none; }
+  dialog input:focus { border-color: var(--accent); box-shadow: 0 0 12px rgba(0,240,255,.25); }
+  .dbtns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; }
+
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .tab { padding: 8px 20px; font-size: .85rem; }
+  .tab.on { background: var(--accent); color: #001418; }
+  .chartbox { position: relative; height: 350px; }
+  .row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+  .row .label { margin: 0; }
+  select { font: inherit; font-weight: 600; letter-spacing: .05em; color: var(--strong); background: #0b0c0e; border: 1px solid var(--line); padding: 7px 12px; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: right; padding: 11px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  th { font-size: .74rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+  td { font-family: var(--mono); font-size: .88rem; color: var(--strong); }
+  td:first-child { font-family: var(--ui); font-size: 1rem; font-weight: 600; letter-spacing: .04em; }
+  td.best { color: var(--good); } td.worst { color: var(--bad); }
+  .scrollx { overflow-x: auto; }
+  .note { font-size: .88rem; color: var(--muted); margin-top: 14px; }
+
+  /* Rekorde */
+  .recs { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  .rec { padding: 18px 18px 14px; background: rgba(255,255,255,.04); clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%); }
+  .rec h4 { font-size: 1.05rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--strong); }
+  .rec .sub2 { font-size: .85rem; color: var(--muted); }
+  .rec .top { margin: 12px 0 8px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .rec .big { font-family: var(--mono); font-size: 2rem; font-weight: 700; color: var(--strong); }
+  .rec .big small { font-size: .85rem; color: var(--muted); font-weight: 500; }
+  .badge { font-size: .7rem; font-weight: 700; letter-spacing: .16em; padding: 2px 10px; background: var(--accent); color: #001418; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
+  .rank { display: grid; grid-template-columns: 62px 1fr 78px; gap: 10px; align-items: center; font-size: .85rem; padding: 3px 0; }
+  .rank .nm { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rank .nm.sel { color: var(--strong); font-weight: 700; }
+  .rank .track { height: 6px; background: rgba(255,255,255,.07); transform: skewX(-25deg); }
+  .rank .track b { display: block; height: 100%; }
+  .rank .val { font-family: var(--mono); font-size: .78rem; text-align: right; color: var(--strong); }
+  .rank.win .val { color: var(--accent); }
+
+  @media (max-width: 700px) { .chartbox { height: 280px; } .page { padding-top: 26px; } .panel { padding: 18px; } .fold { padding: 0; }
+    .fold > summary { padding: 18px 48px 18px 18px; flex-wrap: wrap; gap: 4px 14px; } .fold-body { padding: 4px 18px 22px; } }
+  @media (prefers-reduced-motion: reduce) { header::before, h1 span::before, h1 span::after { animation: none; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="status"><svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><g stroke="#00f0ff" stroke-width="2" stroke-linecap="round"><line x1="9" y1="9" x2="23" y2="23"/><line x1="23" y1="9" x2="9" y2="23"/></g><g fill="none" stroke="#00f0ff" stroke-width="1.6"><circle cx="6.5" cy="6.5" r="4.2"/><circle cx="25.5" cy="6.5" r="4.2"/><circle cx="6.5" cy="25.5" r="4.2"/><circle cx="25.5" cy="25.5" r="4.2"/></g><rect x="12.5" y="12.5" width="7" height="7" rx="1.5" fill="#0a0a0c" stroke="#ff2bd6" stroke-width="1.6"/></svg>Betaflight · Blackbox · 1 Hz</div>
+    <h1>Drohnen<span data-t="Telemetrie">Telemetrie</span></h1>
+    <p class="sub">Flugdaten deiner Drohne als Graphen. Lege mehrere Flüge übereinander und sieh, was sich verändert hat.</p>
+  </header>
+
+  <div class="bar">
+    <button class="primary" id="btnSample">Beispieldaten laden</button>
+    <label class="btn" for="file">CSV importieren</label>
+    <input type="file" id="file" accept=".csv,.txt" multiple hidden>
+    <button id="btnExport">Backup speichern</button>
+    <label class="btn" for="fileBackup">Backup laden</label>
+    <input type="file" id="fileBackup" accept=".json" hidden>
+    <button class="danger" id="btnClear">Alle löschen</button>
+  </div>
+  <div id="drop">CSV-Dateien aus dem Blackbox Explorer hierher ziehen</div>
+  <div id="msg"></div>
+
+  <div id="app"></div>
+</div>
+
+<dialog id="dlg">
+  <form method="dialog">
+    <h3>Flug bearbeiten</h3>
+    <label>Name<input id="dName" maxlength="30" autocomplete="off"></label>
+    <label>Standort<input id="dLoc" maxlength="40" autocomplete="off" placeholder="z. B. Feld hinter dem Haus"></label>
+    <label>Datum<input id="dDate" type="date"></label>
+    <div class="dbtns"><button value="cancel" formnovalidate>Abbrechen</button><button class="primary" value="ok">Speichern</button></div>
+  </form>
+</dialog>
+
+<script>
+/* ---------- Konstanten ---------- */
+const COLORS = ["#00f0ff", "#ff2bd6", "#fcee0a", "#39ff88", "#a06bff", "#3b82f6", "#ff8ad8", "#2dd4bf"];
+const METRICS = {
+  volt:  { label: "Akkuspannung", unit: "V",  key: "v",  dec: 2 },
+  amp:   { label: "Strom",        unit: "A",  key: "a",  dec: 1 },
+  thr:   { label: "Gas",          unit: "%",  key: "t",  dec: 0 },
+  motor: { label: "Motoren Ø",    unit: "%",  key: "m",  dec: 0 },
+  alt:   { label: "Höhe",         unit: "m",  key: "h",  dec: 1 },
+  vib:   { label: "Vibration",    unit: "",   key: "g",  dec: 1 }
+};
+const STATS = {
+  dur:   { label: "Flugzeit",      unit: "s",   dec: 0, better: "high", get: f => f.stats.dur },
+  minV:  { label: "Min. Spannung", unit: "V",   dec: 2, better: "high", get: f => f.stats.minV },
+  maxA:  { label: "Max. Strom",    unit: "A",   dec: 1, better: "low",  get: f => f.stats.maxA },
+  mah:   { label: "Verbrauch",     unit: "mAh", dec: 0, better: "low",  get: f => f.stats.mah },
+  avgT:  { label: "Ø Gas",         unit: "%",   dec: 0, better: null,   get: f => f.stats.avgT },
+  maxH:  { label: "Max. Höhe",     unit: "m",   dec: 0, better: null,   get: f => f.stats.maxH },
+  vib:   { label: "Ø Vibration",   unit: "",    dec: 1, better: "low",  get: f => f.stats.vib }
+};
+const TILE_KEYS = ["dur", "minV", "maxA", "mah"];
+const RECORDS = [
+  { label: "Höchstgeschwindigkeit", sub: "Schnellster Moment, braucht GPS-Daten", unit: "km/h", dec: 0, best: "high", get: f => f.stats.maxSpeed },
+  { label: "Tiefflug-Rekord", sub: "Niedrigster Abstand zum Boden im Flug (Barometer, grob)", unit: "m", dec: 1, best: "low", get: f => f.stats.minAlt },
+  { label: "Höhenrekord", sub: "Höchster Punkt", unit: "m", dec: 1, best: "high", get: f => f.stats.maxH },
+  { label: "Power-Peak", sub: "Höchste kurzzeitige Leistung", unit: "W", dec: 0, best: "high", get: f => f.stats.pow },
+  { label: "Vollgas-Zeit", sub: "Sekunden mit mehr als 70 % Gas", unit: "s", dec: 0, best: "high", get: f => f.stats.fullT },
+  { label: "Ausdauer", sub: "Längster Flug", unit: "s", dec: 0, best: "high", get: f => f.stats.dur }
+];
+const STORE = "drohnen-dashboard-v2";
+const SECTIONS = {
+  compare: { title: "Vergleich",       hint: "Kurven der gewählten Flüge übereinander", charts: ["c1"] },
+  stats:   { title: "Kennzahlen",      hint: "Tabelle mit besten und schlechtesten Werten", charts: [] },
+  trend:   { title: "Verlauf",         hint: "Ein Wert über alle Flüge", charts: ["c2"] },
+  battery: { title: "Akku-Gesundheit", hint: "Innenwiderstand und Spannungseinbruch", charts: ["cb1", "cb2"] },
+  motor:   { title: "Motorbalance",    hint: "Arbeiten alle vier Motoren gleich viel?", charts: ["cm1"] },
+  noise:   { title: "Rauschspektrum",  hint: "Vibrationen nach Frequenz", charts: ["cn1"] },
+  fun:     { title: "Rekorde",         hint: "Schnellster, tiefster, stärkster Flug", charts: [] }
+};
+
+/* ---------- Zustand ---------- */
+let flights = load();
+let selected = new Set(flights.slice(-3).map(f => f.id));
+let metric = "volt";
+let trendKey = "minV";
+let openSecs = new Set();
+const charts = {};
+
+function load() { try { return JSON.parse(localStorage.getItem(STORE)) || []; } catch { return []; } }
+function save() { try { localStorage.setItem(STORE, JSON.stringify(flights)); } catch { say("Speicher voll, Daten bleiben nur bis zum Schließen der Seite.", true); } }
+function say(t, err) { const m = document.getElementById("msg"); m.textContent = t; m.className = err ? "err" : ""; }
+const fmt = (v, d) => (v == null || isNaN(v)) ? "–" : v.toFixed(d);
+const avg = a => a.reduce((x, y) => x + y, 0) / (a.length || 1);
+
+/* ---------- Auswertung ---------- */
+function fitBattery(s) {
+  // V = c0 - R*A + k*mAh (kleinste Quadrate, k ist negativ), R = Innenwiderstand des Packs
+  const n = s.v.length; if (n < 30) return null;
+  let cum = 0; const X = [];
+  for (let i = 0; i < n; i++) { cum += s.a[i] / 3.6; X.push([1, s.a[i], cum]); }
+  const A = [[0,0,0],[0,0,0],[0,0,0]], b = [0,0,0];
+  for (let i = 3; i < n; i++) for (let p = 0; p < 3; p++) { b[p] += X[i][p] * s.v[i]; for (let q = 0; q < 3; q++) A[p][q] += X[i][p] * X[i][q]; }
+  for (let c = 0; c < 3; c++) {
+    let m = c; for (let r = c + 1; r < 3; r++) if (Math.abs(A[r][c]) > Math.abs(A[m][c])) m = r;
+    if (Math.abs(A[m][c]) < 1e-9) return null;
+    [A[c], A[m]] = [A[m], A[c]]; [b[c], b[m]] = [b[m], b[c]];
+    for (let r = c + 1; r < 3; r++) { const f = A[r][c] / A[c][c]; for (let q = c; q < 3; q++) A[r][q] -= f * A[c][q]; b[r] -= f * b[c]; }
+  }
+  const x = [0,0,0];
+  for (let r = 2; r >= 0; r--) { let sum = b[r]; for (let q = r + 1; q < 3; q++) sum -= A[r][q] * x[q]; x[r] = sum / A[r][r]; }
+  const ir = -x[1] * 1000;
+  if (!isFinite(ir) || ir < 0 || ir > 500) return null;
+  return { c0: x[0], ir, k: x[2], mm: cum / 2 };
+}
+function specStats(sp) {
+  if (!sp) return {};
+  let pi = -1; sp.a.forEach((v, i) => { if (sp.f0 + i * sp.df >= 80 && (pi < 0 || v > sp.a[pi])) pi = i; });
+  if (pi < 0) pi = 0;
+  const pts = sp.a.map((v, i) => [sp.f0 + i * sp.df, v]).filter(p => p[0] >= 100 && p[0] <= 400);
+  return { peakHz: sp.f0 + pi * sp.df, peakDb: sp.a[pi], noiseDb: avg((pts.length ? pts : sp.a.map(v => [0, v])).map(p => p[1])) };
+}
+function computeStats(s, spec) {
+  const n = s.t.length;
+  let mah = 0, pow = 0, full = 0;
+  for (let i = 0; i < n; i++) { mah += s.a[i] / 3.6; pow = Math.max(pow, s.v[i] * s.a[i]); if (s.t[i] >= 70) full++; }
+  const fly = s.h.slice(Math.min(8, n - 1), Math.max(n - 8, 9));
+  const fit = fitBattery(s);
+  const mAvg = [0,1,2,3].map(k => s["m" + k] && s["m" + k].length ? avg(s["m" + k]) : null);
+  return {
+    dur: n, minV: Math.min(...s.v), maxA: Math.max(...s.a), mah, avgT: avg(s.t), maxH: Math.max(...s.h), vib: avg(s.g),
+    pow, fullT: full, minAlt: fly.length ? Math.max(0, Math.min(...fly)) : null,
+    maxSpeed: s.sp && s.sp.length ? Math.max(...s.sp) : null,
+    startV: s.v[Math.min(2, n - 1)], ir: fit ? fit.ir : null, fit, mAvg, ...specStats(spec)
+  };
+}
+
+/* ---------- Beispieldaten ---------- */
+function rng(seed) { let x = seed; return () => (x = (x * 1664525 + 1013904223) % 4294967296) / 4294967296; }
+function sampleSpectrum(idx, r) {
+  const fp = 190 + idx * 4, P = idx === 3 ? 90 : 18 + idx * 2, a = [];
+  for (let f = 20; f <= 500; f += 5) {
+    const A = 1.5 + 30 * Math.exp(-f / 70) + P * Math.exp(-Math.pow((f - fp) / 12, 2)) + .35 * P * Math.exp(-Math.pow((f - 2 * fp) / 16, 2)) + (r() - .5) * .6;
+    a.push(+(20 * Math.log10(A)).toFixed(1));
+  }
+  return { f0: 20, df: 5, a };
+}
+function makeSample(idx) {
+  const r = rng(101 + idx * 977);
+  const dur = 170 + Math.floor(r() * 90);
+  const R = 0.02 + idx * 0.006;                       // Akku altert: Innenwiderstand (Ohm) steigt
+  const vibBase = idx === 3 ? 21 : 9 + r() * 3;       // Flug 4: leichter Propellerschaden
+  const bias = idx === 3 ? [0, .12, -.03, -.02] : [0, 1, 2, 3].map(() => (r() - .5) * .05);
+  const speedF = [0.9, 1.0, 1.05, 0.95, 1.5, 1.1][idx];
+  const dive = [3.5, 4.0, 0.5, 2.8, 1.6, 2.2][idx];  // tiefster Anflug
+  const s = { t: [], m: [], m0: [], m1: [], m2: [], m3: [], v: [], a: [], h: [], g: [], sp: [] };
+  let used = 0, alt = 0;
+  const ph1 = r() * 6, ph2 = r() * 6;
+  for (let i = 0; i < dur; i++) {
+    let thr = i < 6 ? 25 + i * 6 : 46 + 9 * Math.sin(i / 9 + ph1) + 6 * Math.sin(i / 3.3 + ph2) + (r() - .5) * 4;
+    if (i % 47 > 41) thr += 22;                        // Gasstöße
+    if (i > dur - 8) thr = Math.max(20, thr - (i - (dur - 8)) * 4);
+    thr = Math.max(0, Math.min(100, thr));
+    const amp = 2 + thr * 0.36 + (r() - .5) * 2;
+    used += amp / 3.6;
+    const ocv = 16.8 - 2.6 * Math.pow(used / 1300, 1.6);
+    const volt = ocv - amp * R;
+    let target = i < 6 ? i * 4 : 14 + 6 * Math.sin(i / 14 + ph2) + (thr - 46) * .1;
+    if (i >= 90 && i < 97) target = dive;
+    alt += (target - alt) * .35;
+    const mavg = Math.min(100, thr * .96 + 4 + (r() - .5) * 3);
+    s.t.push(+thr.toFixed(1));
+    s.m.push(+mavg.toFixed(1));
+    bias.forEach((b, k) => s["m" + k].push(+Math.min(100, mavg * (1 + b)).toFixed(1)));
+    s.a.push(+Math.max(0, amp).toFixed(2));
+    s.v.push(+volt.toFixed(3));
+    s.h.push(+Math.max(0, alt).toFixed(1));
+    s.g.push(+(vibBase + thr * .06 + (r() - .5) * 3).toFixed(1));
+    s.sp.push(+Math.max(0, (thr - 30) * 1.7 * speedF + (r() - .5) * 4).toFixed(1));
+  }
+  return { s, spec: sampleSpectrum(idx, r) };
+}
+function addSamples() {
+  const now = Date.now(), day = 864e5;
+  const base = flights.length;
+  for (let i = 0; i < 6; i++) {
+    const { s, spec } = makeSample(i);
+    flights.push({
+      id: "s" + now + i, name: "Flug " + (base + i + 1),
+      date: new Date(now - (6 - i) * 3 * day).toISOString().slice(0, 10),
+      sample: true, series: s, spec, stats: computeStats(s, spec)
+    });
+  }
+  selected = new Set(flights.slice(-3).map(f => f.id));
+  save(); render(); say("6 Beispielflüge geladen (erfundene Daten).");
+}
+
+/* ---------- FFT ---------- */
+function fft(re, im) {
+  const n = re.length;
+  for (let i = 1, j = 0; i < n; i++) {
+    let bit = n >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit;
+    if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; }
+  }
+  for (let len = 2; len <= n; len <<= 1) {
+    const ang = -2 * Math.PI / len, wr = Math.cos(ang), wi = Math.sin(ang), h = len >> 1;
+    for (let i = 0; i < n; i += len) {
+      let cr = 1, ci = 0;
+      for (let j = 0; j < h; j++) {
+        const a = i + j, b = a + h;
+        const vr = re[b] * cr - im[b] * ci, vi = re[b] * ci + im[b] * cr;
+        re[b] = re[a] - vr; im[b] = im[a] - vi; re[a] += vr; im[a] += vi;
+        const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t;
+      }
+    }
+  }
+}
+function computeSpectrum(axes, fs) {
+  const N = 1024, len = axes[0].length;
+  if (!axes.length || len < N * 2 || !isFinite(fs) || fs < 200) return null;
+  const win = Float64Array.from({ length: N }, (_, i) => .5 - .5 * Math.cos(2 * Math.PI * i / (N - 1)));
+  const pw = new Float64Array(N / 2);
+  const hop = Math.max(N / 2, Math.floor((len - N) / 300)); // höchstens ~300 Fenster pro Achse
+  let cnt = 0;
+  const re = new Float64Array(N), im = new Float64Array(N);
+  for (const ax of axes) for (let p = 0; p + N <= len; p += hop) {
+    let mean = 0; for (let i = 0; i < N; i++) mean += ax[p + i]; mean /= N;
+    for (let i = 0; i < N; i++) { re[i] = (ax[p + i] - mean) * win[i]; im[i] = 0; }
+    fft(re, im);
+    for (let k = 0; k < N / 2; k++) pw[k] += re[k] * re[k] + im[k] * im[k];
+    cnt++;
+  }
+  const fmax = Math.min(500, fs / 2), k0 = Math.ceil(20 * N / fs), k1 = Math.floor(fmax * N / fs);
+  const grp = Math.max(1, Math.floor((k1 - k0 + 1) / 100)), a = [];
+  for (let k = k0; k + grp - 1 <= k1; k += grp) {
+    let sum = 0; for (let j = 0; j < grp; j++) sum += pw[k + j];
+    const amp = Math.sqrt(sum / grp / cnt) / (N / 4);
+    a.push(+(20 * Math.log10(amp + 1e-9)).toFixed(1));
+  }
+  return { f0: k0 * fs / N, df: grp * fs / N, a };
+}
+
+/* ---------- CSV-Import (Betaflight Blackbox Explorer / blackbox_decode) ---------- */
+function parseCSV(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  let hi = lines.findIndex(l => /time/i.test(l) && l.includes(","));
+  if (hi < 0) throw new Error("Keine Kopfzeile mit 'time' gefunden.");
+  const head = lines[hi].split(",").map(h => h.replace(/"/g, "").trim().toLowerCase());
+  const col = re => head.findIndex(h => re.test(h));
+  const cT = col(/^time/), cV = col(/vbat/), cA = col(/amperage/), cThr = col(/rccommand\[3\]/),
+        cH = col(/baroalt|gps_altitude|altitude/), cS = col(/gps_speed/),
+        cM = [0, 1, 2, 3].map(i => head.indexOf("motor[" + i + "]")),
+        cG = [0, 1, 2].map(i => head.findIndex(h => h.startsWith("gyroadc[" + i + "]"))).filter(i => i >= 0);
+  if (cT < 0) throw new Error("Spalte 'time' fehlt.");
+  const bins = new Map();
+  let t0 = null, mMax = 0;
+  const rows = [];
+  for (let i = hi + 1; i < lines.length; i++) {
+    const c = lines[i].split(",");
+    const t = parseFloat(c[cT]); if (isNaN(t)) continue;
+    if (t0 == null) t0 = t;
+    rows.push(c);
+    for (const k of cM) if (k >= 0) mMax = Math.max(mMax, parseFloat(c[k]) || 0);
+  }
+  if (rows.length < 20) throw new Error("Zu wenige Datenzeilen.");
+  const tScale = 1e-6; // Blackbox: Mikrosekunden
+  const mPct = x => mMax > 1200 ? x / 2047 * 100 : (x - 1000) / 10;
+  for (const c of rows) {
+    const sec = Math.floor((parseFloat(c[cT]) - t0) * tScale);
+    if (!bins.has(sec)) bins.set(sec, { n: 0, v: 0, a: 0, t: 0, m: 0, m0: 0, m1: 0, m2: 0, m3: 0, h: 0, g: 0, sp: 0 });
+    const b = bins.get(sec); b.n++;
+    let v = cV >= 0 ? parseFloat(c[cV]) : NaN; if (v > 100) v /= 100;
+    let a = cA >= 0 ? parseFloat(c[cA]) : NaN; if (a > 300) a /= 100;
+    b.v += isNaN(v) ? 0 : v; b.a += isNaN(a) ? 0 : a;
+    b.t += cThr >= 0 ? Math.max(0, Math.min(100, (parseFloat(c[cThr]) - 1000) / 10)) : 0;
+    let msum = 0, mc = 0;
+    cM.forEach((k, i) => { if (k >= 0) { const p = mPct(parseFloat(c[k]) || 0); b["m" + i] += p; msum += p; mc++; } });
+    b.m += mc ? msum / mc : 0;
+    let h = cH >= 0 ? parseFloat(c[cH]) : 0; if (cH >= 0 && /baroalt/.test(head[cH])) h /= 100;
+    b.h += isNaN(h) ? 0 : h;
+    b.g += cG.length ? Math.sqrt(cG.reduce((x, k) => x + Math.pow(parseFloat(c[k]) || 0, 2), 0)) : 0;
+    b.sp += cS >= 0 ? (parseFloat(c[cS]) || 0) * 3.6 : 0; // m/s -> km/h
+  }
+  const secs = [...bins.keys()].sort((x, y) => x - y);
+  const s = { t: [], m: [], m0: [], m1: [], m2: [], m3: [], v: [], a: [], h: [], g: [], sp: [] };
+  const push = (key, val, d) => s[key].push(+val.toFixed(d));
+  for (const k of secs) {
+    const b = bins.get(k), n = b.n;
+    push("v", b.v / n, 3); push("a", b.a / n, 2); push("t", b.t / n, 1); push("m", b.m / n, 1);
+    for (let i = 0; i < 4; i++) push("m" + i, b["m" + i] / n, 1);
+    push("h", b.h / n, 1); push("g", b.g / n, 1);
+    if (cS >= 0) push("sp", b.sp / n, 1);
+  }
+  // Rauschspektrum aus den hochaufgelösten Gyro-Daten
+  let spec = null;
+  if (cG.length) {
+    const dts = []; let prev = null;
+    for (let i = 0; i < Math.min(rows.length, 600); i++) { const t = parseFloat(rows[i][cT]); if (prev != null && t > prev) dts.push(t - prev); prev = t; }
+    dts.sort((x, y) => x - y);
+    const fs = 1 / ((dts[Math.floor(dts.length / 2)] || 0) * tScale);
+    const axes = cG.map(k => Float64Array.from(rows, c => parseFloat(c[k]) || 0));
+    spec = computeSpectrum(axes, fs);
+  }
+  return { series: s, spec, missing: { spannung: cV < 0, strom: cA < 0, gas: cThr < 0, motoren: cM.some(k => k < 0), hoehe: cH < 0, gps_speed: cS < 0, gyro: !cG.length } };
+}
+async function importFiles(list) {
+  let ok = 0, warn = [];
+  for (const f of list) {
+    try {
+      const { series, spec, missing } = parseCSV(await f.text());
+      const nm = f.name.replace(/\.[^.]+$/, "");
+      flights.push({ id: "f" + Date.now() + Math.random().toString(36).slice(2, 6), name: nm.slice(0, 24),
+        date: new Date(f.lastModified).toISOString().slice(0, 10), series, spec, stats: computeStats(series, spec) });
+      selected.add(flights[flights.length - 1].id);
+      const miss = Object.entries(missing).filter(e => e[1]).map(e => e[0]);
+      if (miss.length) warn.push(f.name + ": keine Daten für " + miss.join(", "));
+      ok++;
+    } catch (e) { say(f.name + ": " + e.message, true); return render(); }
+  }
+  save(); render();
+  say(ok + " Flug/Flüge importiert." + (warn.length ? " Hinweis: " + warn.join("; ") : ""));
+}
+
+/* ---------- Darstellung ---------- */
+const app = document.getElementById("app");
+const colorOf = f => COLORS[flights.indexOf(f) % COLORS.length];
+const esc = s => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const cls = (v, best, worst) => v === best ? "best" : v === worst ? "worst" : "";
+
+function tile(k, v, unit, d, dcls, pct) {
+  return `<div class="tile"><div class="k">${k}</div><div class="v">${v}<small>${unit}</small></div>
+    <div class="d ${dcls || ""}">${d || "&nbsp;"}</div>${pct != null ? `<div class="gauge"><b style="width:${Math.max(4, Math.min(100, pct))}%"></b></div>` : ""}</div>`;
+}
+function tilesHTML(sel) {
+  const cur = sel[sel.length - 1];
+  const prev = flights[flights.indexOf(cur) - 1];
+  return `<div class="who">Letzter gewählter Flug: <b>${esc(cur.name)}</b>${cur.loc ? ` @ ${esc(cur.loc)}` : ""}${prev ? ` · Änderung zu <b>${esc(prev.name)}</b>` : ""}</div>
+    <div class="tiles">${TILE_KEYS.map(k => {
+      const s = STATS[k], v = s.get(cur), max = Math.max(...flights.map(s.get)) || 1;
+      let d = "", c = "";
+      if (prev) {
+        const dv = v - s.get(prev), good = s.better === "high" ? dv > 0 : dv < 0;
+        c = Math.abs(dv) < 1e-9 ? "" : (good ? "good" : "bad");
+        d = (dv > 0 ? "▲ +" : dv < 0 ? "▼ " : "= ") + fmt(dv, s.dec) + " " + s.unit;
+      }
+      return tile(s.label, fmt(v, s.dec), s.unit, d, c, v / max * 100);
+    }).join("")}</div>`;
+}
+
+/* --- Bereiche --- */
+function needSel(sel) { return sel.length ? "" : `<p class="note">Wähle oben mindestens einen Flug aus.</p>`; }
+
+function batteryHTML(sel) {
+  if (!sel.length) return needSel(sel);
+  const cur = sel[sel.length - 1], first = flights[0], st = cur.stats;
+  let d = "Basis-Flug", c = "", verdict = "";
+  if (st.ir != null && first.stats.ir != null && cur !== first) {
+    const pct = (st.ir / first.stats.ir - 1) * 100;
+    d = (pct >= 0 ? "▲ +" : "▼ ") + fmt(pct, 0) + " % ggü. " + esc(first.name);
+    c = pct > 5 ? "bad" : pct < -5 ? "good" : "";
+    verdict = pct < 15 ? `<div class="verdict good"><b>Akku unauffällig.</b> Der Innenwiderstand liegt nahe am ersten Flug.</div>`
+      : pct < 40 ? `<div class="verdict warn"><b>Akku lässt nach.</b> Der Innenwiderstand ist um ${fmt(pct, 0)} % gestiegen. Beobachte den Verlauf.</div>`
+      : `<div class="verdict bad"><b>Akku deutlich schwächer.</b> Der Innenwiderstand ist um ${fmt(pct, 0)} % gestiegen. Prüfe den Akku, bevor du weiterfliegst.</div>`;
+  }
+  const rows = sel.map(f => f.stats.ir);
+  const okIr = rows.filter(v => v != null);
+  const bIr = Math.min(...okIr), wIr = Math.max(...okIr);
+  return `<div class="who">Letzter gewählter Flug: <b>${esc(cur.name)}</b></div>
+    <div class="tiles">
+      ${tile("Innenwiderstand", fmt(st.ir, 0), "mΩ", d, c)}
+      ${tile("Spannungseinbruch", fmt(st.startV - st.minV, 2), "V", "Start " + fmt(st.startV, 2) + " V, Minimum " + fmt(st.minV, 2) + " V")}
+      ${tile("Verbrauch", fmt(st.mah, 0), "mAh", "Max. Strom " + fmt(st.maxA, 1) + " A")}
+    </div>${verdict}
+    <div class="sublabel">Spannung gegen Strom (jeder Punkt = 1 Sekunde, Linie = Trend)</div>
+    <div class="chartbox"><canvas id="cb1"></canvas></div>
+    <div class="sublabel">Innenwiderstand über alle Flüge</div>
+    <div class="chartbox" style="height:240px"><canvas id="cb2"></canvas></div>
+    <div class="scrollx" style="margin-top:20px"><table><thead><tr><th>Flug</th><th>Innenwiderstand</th><th>Spannungseinbruch</th><th>Verbrauch</th></tr></thead><tbody>
+      ${sel.map(f => `<tr><td><span style="color:${colorOf(f)}">■</span> ${esc(f.name)}</td>
+        <td class="${sel.length > 1 && f.stats.ir != null ? cls(f.stats.ir, bIr, wIr) : ""}">${fmt(f.stats.ir, 0)} mΩ</td>
+        <td>${fmt(f.stats.startV - f.stats.minV, 2)} V</td><td>${fmt(f.stats.mah, 0)} mAh</td></tr>`).join("")}
+    </tbody></table></div>
+    <p class="note">Der Innenwiderstand wird geschätzt: Aus Spannung, Strom und verbrauchter Ladung wird berechnet, wie stark die Spannung pro Ampere einbricht. Ein steigender Wert über mehrere Flüge zeigt einen alternden Akku. Die Zahl ist eine Schätzung und kein Messwert eines Ladegeräts.</p>`;
+}
+function motorDev(f) {
+  const m = f.stats.mAvg; if (m.some(v => v == null)) return null;
+  const mean = avg(m);
+  return m.map(v => (v - mean) / mean * 100);
+}
+function motorHTML(sel) {
+  if (!sel.length) return needSel(sel);
+  const devs = sel.map(motorDev), spread = devs.map(d => d ? Math.max(...d) - Math.min(...d) : null);
+  return `<div class="sublabel" style="margin-top:0">Abweichung jedes Motors vom Durchschnitt aller vier</div>
+    <div class="chartbox" style="height:300px"><canvas id="cm1"></canvas></div>
+    <div class="scrollx" style="margin-top:20px"><table><thead><tr><th>Flug</th><th>M1</th><th>M2</th><th>M3</th><th>M4</th><th>Unterschied</th><th>Bewertung</th></tr></thead><tbody>
+      ${sel.map((f, i) => `<tr><td><span style="color:${colorOf(f)}">■</span> ${esc(f.name)}</td>
+        ${f.stats.mAvg.map(v => `<td>${fmt(v, 1)} %</td>`).join("")}
+        <td>${fmt(spread[i], 1)} %</td>
+        <td class="${spread[i] == null ? "" : spread[i] > 20 ? "worst" : spread[i] > 10 ? "" : "best"}">${spread[i] == null ? "keine Daten" : spread[i] > 20 ? "auffällig" : spread[i] > 10 ? "leicht ungleich" : "ausgeglichen"}</td></tr>`).join("")}
+    </tbody></table></div>
+    <p class="note">M1 bis M4 sind die vier Motorausgänge in Betaflight. Die Balken zeigen, ob ein Motor im Schnitt mehr Leistung ausgeben muss als die anderen. Ein dauerhaft höherer Wert kann auf einen verbogenen Propeller, ein müdes Lager oder einen verschobenen Schwerpunkt hindeuten. Die Grenzen (10 % und 20 %) sind grobe Richtwerte.</p>`;
+}
+function noiseHTML(sel) {
+  if (!sel.length) return needSel(sel);
+  const ok = sel.filter(f => f.spec);
+  const pk = ok.map(f => f.stats.noiseDb), b = Math.min(...pk), w = Math.max(...pk);
+  return `<div class="chartbox"><canvas id="cn1"></canvas></div>
+    ${ok.length < sel.length ? `<p class="note">Für ${sel.length - ok.length} Flug/Flüge fehlen Gyro-Daten mit genug Auflösung, sie erscheinen nicht im Graphen.</p>` : ""}
+    <div class="scrollx" style="margin-top:20px"><table><thead><tr><th>Flug</th><th>Stärkster Peak</th><th>Peak-Stärke</th><th>Grundrauschen</th></tr></thead><tbody>
+      ${sel.map(f => `<tr><td><span style="color:${colorOf(f)}">■</span> ${esc(f.name)}</td>
+        <td>${f.spec ? fmt(f.stats.peakHz, 0) + " Hz" : "–"}</td><td>${f.spec ? fmt(f.stats.peakDb, 1) + " dB" : "–"}</td>
+        <td class="${f.spec && ok.length > 1 ? cls(f.stats.noiseDb, b, w) : ""}">${f.spec ? fmt(f.stats.noiseDb, 1) + " dB" : "–"}</td></tr>`).join("")}
+    </tbody></table></div>
+    <p class="note">Der Graph zeigt, bei welcher Frequenz die Drohne wie stark vibriert. Ein hoher Peak entsteht oft durch Propeller oder Motoren, etwa nach einem Aufprall. Das Grundrauschen (Mittel von 100 bis 400 Hz) zeigt, wie sauber die Drohne insgesamt läuft. Tiefere Werte sind besser. Die dB-Skala hängt vom Logging ab, vergleiche also nur Flüge, die gleich eingestellt geloggt wurden.</p>`;
+}
+function funHTML() {
+  const selIds = selected;
+  return `<div class="recs">${RECORDS.map(r => {
+    const list = flights.map(f => ({ f, v: r.get(f) })).filter(x => x.v != null && !isNaN(x.v));
+    if (!list.length) return `<div class="rec"><h4>${r.label}</h4><div class="sub2">${r.sub}</div><p class="note">Keine Daten vorhanden.</p></div>`;
+    const bestV = r.best === "high" ? Math.max(...list.map(x => x.v)) : Math.min(...list.map(x => x.v));
+    const win = list.find(x => x.v === bestV), max = Math.max(...list.map(x => x.v)) || 1;
+    const rank = list.slice().sort((a, b) => r.best === "high" ? b.v - a.v : a.v - b.v);
+    return `<div class="rec"><h4>${r.label}</h4><div class="sub2">${r.sub}</div>
+      <div class="top"><span class="big">${fmt(bestV, r.dec)}<small> ${r.unit}</small></span><span class="badge">REKORD</span><span style="color:${colorOf(win.f)};font-weight:700">${esc(win.f.name)}</span></div>
+      ${rank.map(x => `<div class="rank ${x.v === bestV ? "win" : ""}"><span class="nm ${selIds.has(x.f.id) ? "sel" : ""}" style="${selIds.has(x.f.id) ? "color:" + colorOf(x.f) : ""}">${esc(x.f.name)}</span>
+        <span class="track"><b style="width:${Math.max(3, x.v / max * 100)}%;background:${colorOf(x.f)}"></b></span><span class="val">${fmt(x.v, r.dec)} ${r.unit}</span></div>`).join("")}
+    </div>`;
+  }).join("")}</div>
+  <p class="note">Alle Flüge im Vergleich. Die Namen der oben ausgewählten Flüge sind farbig hervorgehoben. Bei Tiefflug gewinnt der niedrigste Wert. Die Geschwindigkeit erscheint nur, wenn die CSV GPS-Daten enthält.</p>`;
+}
+function compareHTML(sel) {
+  return `<div class="tabs">${Object.entries(METRICS).map(([k, m]) => `<button class="tab ${k === metric ? "on" : ""}" data-m="${k}">${m.label}</button>`).join("")}</div>
+    <div class="chartbox"><canvas id="c1"></canvas></div>${needSel(sel)}`;
+}
+function statsHTML(sel) {
+  if (!sel.length) return needSel(sel);
+  return `<div class="scrollx"><table>
+      <thead><tr><th>Flug</th>${Object.values(STATS).map(s => `<th>${s.label}</th>`).join("")}</tr></thead>
+      <tbody>${sel.map(f => `<tr><td><span style="color:${colorOf(f)}">■</span> ${esc(f.name)}</td>${Object.values(STATS).map(s => {
+        const vals = sel.map(s.get), v = s.get(f);
+        let c = "";
+        if (sel.length > 1 && s.better) c = cls(v, s.better === "high" ? Math.max(...vals) : Math.min(...vals), s.better === "high" ? Math.min(...vals) : Math.max(...vals));
+        return `<td class="${c}">${fmt(v, s.dec)} ${s.unit}</td>`;
+      }).join("")}</tr>`).join("")}</tbody>
+    </table></div>
+    <p class="note">Grün = bester, rot = schlechtester Wert im Vergleich. Der Verbrauch wird aus dem Strom berechnet.</p>`;
+}
+function trendHTML() {
+  return `<div class="row"><span class="note" style="margin:0">Zeigt, wie sich ein Wert von Flug zu Flug entwickelt, zum Beispiel ob dein Akku schwächer wird.</span>
+      <select id="trendSel">${Object.entries(STATS).map(([k, s]) => `<option value="${k}" ${k === trendKey ? "selected" : ""}>${s.label}</option>`).join("")}</select></div>
+    <div class="chartbox" style="height:260px"><canvas id="c2"></canvas></div>`;
+}
+const SECTION_HTML = { compare: compareHTML, stats: statsHTML, trend: trendHTML, battery: batteryHTML, motor: motorHTML, noise: noiseHTML, fun: funHTML };
+
+function render() {
+  Object.keys(charts).forEach(k => { charts[k].destroy(); delete charts[k]; });
+  if (!flights.length) {
+    app.innerHTML = `<div class="panel empty">Noch keine Flüge.<br>Lade Beispieldaten oder importiere eine CSV aus dem Betaflight Blackbox Explorer.</div>`;
+    return;
+  }
+  const sel = flights.filter(f => selected.has(f.id));
+  app.innerHTML = `
+    <div class="panel"><div class="label">Flüge</div>
+      <div class="chips">${flights.map(f => `
+        <div class="chip ${selected.has(f.id) ? "on" : ""}" style="--c:${colorOf(f)}" data-id="${f.id}">
+          <span class="dot"></span>${esc(f.name)}${f.loc ? ` <small class="loc">@ ${esc(f.loc)}</small>` : ""} <small>${f.date}</small>
+          <button class="x ed" data-edit="${f.id}" title="Name, Standort und Datum ändern">✎</button><button class="x" data-del="${f.id}" title="Flug löschen">×</button>
+        </div>`).join("")}
+      </div>
+    </div>
+    ${sel.length ? `<div class="panel"><div class="label">Status</div>${tilesHTML(sel)}</div>` : ""}
+    <div class="label group">Details</div>
+    ${Object.entries(SECTIONS).map(([id, s]) => `
+      <details class="panel fold" data-sec="${id}" ${openSecs.has(id) ? "open" : ""}>
+        <summary><span class="label">${s.title}</span><span class="hint">${s.hint}</span></summary>
+        <div class="fold-body">${SECTION_HTML[id](sel)}</div>
+      </details>`).join("")}`;
+  openSecs.forEach(id => drawSection(id, sel));
+}
+
+/* --- Charts --- */
+function mk(id, cfg) { if (charts[id]) charts[id].destroy(); const el = document.getElementById(id); if (!el) return; charts[id] = new Chart(el, cfg); }
+function chartBase() {
+  Chart.defaults.color = "#8b93a0";
+  Chart.defaults.font.family = '"Rajdhani", system-ui, sans-serif';
+  Chart.defaults.font.size = 13;
+  return {
+    maintainAspectRatio: false, animation: { duration: 400 },
+    interaction: { mode: "index", intersect: false },
+    plugins: {
+      legend: { labels: { usePointStyle: true, pointStyle: "rect", boxWidth: 10, font: { weight: "600" } } },
+      tooltip: { backgroundColor: "#08090b", borderColor: "#00f0ff", borderWidth: 1, titleColor: "#f2f4f7", bodyColor: "#d0d5dc", padding: 10, cornerRadius: 0 }
+    },
+    scales: { x: { grid: { color: "rgba(255,255,255,.05)" }, ticks: { maxTicksLimit: 10 } }, y: { grid: { color: "rgba(255,255,255,.05)" } } }
+  };
+}
+const axisTitle = t => ({ display: true, text: t });
+function drawCompare(sel) {
+  const m = METRICS[metric];
+  const maxLen = Math.max(0, ...sel.map(f => f.series.t.length));
+  const opts = chartBase();
+  opts.scales.x.title = axisTitle("Zeit (s)");
+  opts.scales.y.title = axisTitle(m.unit ? m.label + " (" + m.unit + ")" : m.label);
+  opts.plugins.tooltip.callbacks = { title: i => "t = " + i[0].label + " s", label: c => `${c.dataset.label}: ${fmt(c.parsed.y, m.dec)} ${m.unit}` };
+  mk("c1", { type: "line", options: opts,
+    data: { labels: Array.from({ length: maxLen }, (_, i) => i), datasets: sel.map(f => ({
+      label: f.name, data: f.series[m.key], borderColor: colorOf(f), backgroundColor: colorOf(f),
+      borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, tension: .2, borderJoinStyle: "miter" })) } });
+}
+function drawTrend() {
+  const s = STATS[trendKey];
+  const opts = chartBase();
+  opts.plugins.legend.display = false;
+  opts.scales.y.title = axisTitle(s.label + (s.unit ? " (" + s.unit + ")" : ""));
+  opts.plugins.tooltip.callbacks = { label: c => `${fmt(c.parsed.y, s.dec)} ${s.unit}` };
+  mk("c2", { type: "line", options: opts,
+    data: { labels: flights.map(f => f.name), datasets: [{ data: flights.map(s.get), borderColor: "#00f0ff", backgroundColor: "rgba(0,240,255,.14)", fill: true,
+      borderWidth: 2.5, tension: .15, pointRadius: 5, pointStyle: "rectRot", pointBackgroundColor: flights.map(colorOf), pointBorderWidth: 0 }] } });
+}
+function drawSection(id, sel) {
+  sel = sel || flights.filter(f => selected.has(f.id));
+  if (id === "trend") return drawTrend();
+  if (!sel.length) return;
+  if (id === "compare") return drawCompare(sel);
+  if (id === "battery") {
+    const opts = chartBase();
+    opts.interaction = { mode: "nearest", intersect: true };
+    opts.scales.x = { type: "linear", grid: opts.scales.x.grid, title: axisTitle("Strom (A)") };
+    opts.scales.y.title = axisTitle("Spannung (V)");
+    opts.plugins.legend.labels.filter = i => !i.text.endsWith(" Trend");
+    opts.plugins.tooltip.callbacks = { label: c => `${c.dataset.label}: ${fmt(c.parsed.y, 2)} V bei ${fmt(c.parsed.x, 1)} A` };
+    const ds = [];
+    sel.forEach(f => {
+      const col = colorOf(f);
+      ds.push({ label: f.name, type: "scatter", data: f.series.a.map((a, i) => ({ x: a, y: f.series.v[i] })).slice(3), backgroundColor: col + "99", borderColor: col + "99", pointRadius: 3 });
+      const ft = f.stats.fit;
+      if (ft) { const mx = Math.max(...f.series.a); ds.push({ label: f.name + " Trend", type: "scatter", showLine: true, borderColor: col, borderWidth: 2.5, pointRadius: 0,
+        data: [0, mx].map(a => ({ x: a, y: ft.c0 - ft.ir / 1000 * a + ft.k * ft.mm })) }); }
+    });
+    mk("cb1", { type: "scatter", data: { datasets: ds }, options: opts });
+    const o2 = chartBase();
+    o2.plugins.legend.display = false;
+    o2.scales.y.title = axisTitle("Innenwiderstand (mΩ)");
+    o2.plugins.tooltip.callbacks = { label: c => `${fmt(c.parsed.y, 0)} mΩ` };
+    mk("cb2", { type: "line", options: o2,
+      data: { labels: flights.map(f => f.name), datasets: [{ data: flights.map(f => f.stats.ir), borderColor: "#00f0ff", backgroundColor: "rgba(0,240,255,.14)", fill: true,
+        borderWidth: 2.5, tension: .15, pointRadius: 5, pointStyle: "rectRot", pointBackgroundColor: flights.map(colorOf), pointBorderWidth: 0 }] } });
+  } else if (id === "motor") {
+    const opts = chartBase();
+    opts.scales.y.title = axisTitle("Abweichung vom Durchschnitt (%)");
+    opts.plugins.tooltip.callbacks = { label: c => `${c.dataset.label}: ${c.parsed.y >= 0 ? "+" : ""}${fmt(c.parsed.y, 1)} %` };
+    mk("cm1", { type: "bar", options: opts,
+      data: { labels: ["M1", "M2", "M3", "M4"], datasets: sel.filter(f => motorDev(f)).map(f => ({ label: f.name, data: motorDev(f), backgroundColor: colorOf(f), borderWidth: 0 })) } });
+  } else if (id === "noise") {
+    const opts = chartBase();
+    opts.scales.x = { type: "linear", min: 20, max: 500, grid: opts.scales.x.grid, title: axisTitle("Frequenz (Hz)") };
+    opts.scales.y.title = axisTitle("Stärke (dB)");
+    opts.plugins.tooltip.callbacks = { title: i => fmt(i[0].parsed.x, 0) + " Hz", label: c => `${c.dataset.label}: ${fmt(c.parsed.y, 1)} dB` };
+    mk("cn1", { type: "line", options: opts,
+      data: { datasets: sel.filter(f => f.spec).map(f => ({ label: f.name, borderColor: colorOf(f), backgroundColor: colorOf(f), borderWidth: 2, pointRadius: 0, tension: .2,
+        data: f.spec.a.map((v, i) => ({ x: f.spec.f0 + i * f.spec.df, y: v })) })) } });
+  }
+}
+
+/* ---------- Ereignisse ---------- */
+app.addEventListener("click", e => {
+  const del = e.target.closest("[data-del]");
+  if (del) { e.stopPropagation(); flights = flights.filter(f => f.id !== del.dataset.del); selected.delete(del.dataset.del); save(); render(); return; }
+  const ed = e.target.closest("[data-edit]");
+  if (ed) { e.stopPropagation(); editFlight(ed.dataset.edit); return; }
+  const chip = e.target.closest(".chip");
+  if (chip) { const id = chip.dataset.id; selected.has(id) ? selected.delete(id) : selected.add(id); render(); return; }
+  const tab = e.target.closest("[data-m]");
+  if (tab) { metric = tab.dataset.m; render(); }
+});
+app.addEventListener("change", e => { if (e.target.id === "trendSel") { trendKey = e.target.value; render(); } });
+// Bereiche auf- und zuklappen: Diagramme erst zeichnen, wenn der Bereich sichtbar ist
+app.addEventListener("toggle", e => {
+  const id = e.target.dataset && e.target.dataset.sec; if (!id) return;
+  if (e.target.open) {
+    openSecs.add(id);
+    if (!SECTIONS[id].charts.every(c => charts[c])) drawSection(id);
+  } else {
+    openSecs.delete(id);
+    SECTIONS[id].charts.forEach(c => { if (charts[c]) { charts[c].destroy(); delete charts[c]; } });
+  }
+}, true);
+// Flug umbenennen / Standort und Datum ändern
+const dlg = document.getElementById("dlg");
+let editId = null;
+function editFlight(id) {
+  const f = flights.find(x => x.id === id); if (!f) return;
+  editId = id;
+  document.getElementById("dName").value = f.name;
+  document.getElementById("dLoc").value = f.loc || "";
+  document.getElementById("dDate").value = f.date || "";
+  dlg.returnValue = "";
+  dlg.showModal();
+}
+dlg.addEventListener("close", () => {
+  const f = flights.find(x => x.id === editId);
+  if (dlg.returnValue === "ok" && f) {
+    f.name = document.getElementById("dName").value.trim().slice(0, 30) || f.name;
+    f.loc = document.getElementById("dLoc").value.trim().slice(0, 40);
+    f.date = document.getElementById("dDate").value || f.date;
+    save(); render();
+  }
+  editId = null;
+});
+
+// Backup: alle Flüge als Datei speichern und wieder laden (z. B. für ein anderes Gerät)
+document.getElementById("btnExport").onclick = () => {
+  if (!flights.length) return say("Es gibt noch keine Flüge zum Speichern.", true);
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify({ app: "drohnen-dashboard", version: 2, flights })], { type: "application/json" }));
+  a.download = "drohnen-fluege-" + new Date().toISOString().slice(0, 10) + ".json";
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  say(flights.length + " Flüge als Backup gespeichert.");
+};
+document.getElementById("fileBackup").onchange = async e => {
+  const file = e.target.files[0]; e.target.value = ""; if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    const list = (data && data.flights || []).filter(f => f && f.id && f.series && f.stats && Array.isArray(f.series.t));
+    if (!list.length) throw new Error("Keine gültigen Flüge in der Datei.");
+    const have = new Set(flights.map(f => f.id));
+    const add = list.filter(f => !have.has(f.id)).map(f => ({ ...f, name: String(f.name || "Flug").slice(0, 30), loc: String(f.loc || "").slice(0, 40), date: String(f.date || "").slice(0, 10) }));
+    flights.push(...add); add.forEach(f => selected.add(f.id));
+    save(); render(); say(add.length + " Flüge geladen, " + (list.length - add.length) + " waren schon vorhanden.");
+  } catch (err) { say("Backup konnte nicht geladen werden: " + err.message, true); }
+};
+document.getElementById("btnSample").onclick = addSamples;
+document.getElementById("btnClear").onclick = () => {
+  if (!flights.length || !confirm("Alle gespeicherten Flüge löschen?")) return;
+  flights = []; selected.clear(); save(); render(); say("Alles gelöscht.");
+};
+document.getElementById("file").onchange = e => { importFiles([...e.target.files]); e.target.value = ""; };
+const drop = document.getElementById("drop");
+["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", e => importFiles([...e.dataTransfer.files]));
+
+render();
+</script>
+</body>
+</html>
