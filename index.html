@@ -4,191 +4,281 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Drohnen-Telemetrie</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%20width%3D%2230%22%20height%3D%2230%22%20aria-hidden%3D%22true%22%3E%3Cg%20stroke%3D%22%2300f0ff%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%3E%3Cline%20x1%3D%229%22%20y1%3D%229%22%20x2%3D%2223%22%20y2%3D%2223%22%2F%3E%3Cline%20x1%3D%2223%22%20y1%3D%229%22%20x2%3D%229%22%20y2%3D%2223%22%2F%3E%3C%2Fg%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%2300f0ff%22%20stroke-width%3D%221.6%22%3E%3Ccircle%20cx%3D%226.5%22%20cy%3D%226.5%22%20r%3D%224.2%22%2F%3E%3Ccircle%20cx%3D%2225.5%22%20cy%3D%226.5%22%20r%3D%224.2%22%2F%3E%3Ccircle%20cx%3D%226.5%22%20cy%3D%2225.5%22%20r%3D%224.2%22%2F%3E%3Ccircle%20cx%3D%2225.5%22%20cy%3D%2225.5%22%20r%3D%224.2%22%2F%3E%3C%2Fg%3E%3Crect%20x%3D%2212.5%22%20y%3D%2212.5%22%20width%3D%227%22%20height%3D%227%22%20rx%3D%221.5%22%20fill%3D%22%230a0a0c%22%20stroke%3D%22%23ff2bd6%22%20stroke-width%3D%221.6%22%2F%3E%3C%2Fsvg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cg stroke='%23111' stroke-width='2' stroke-linecap='round'%3E%3Cline x1='9' y1='9' x2='23' y2='23'/%3E%3Cline x1='23' y1='9' x2='9' y2='23'/%3E%3C/g%3E%3Cg fill='none' stroke='%23111' stroke-width='1.6'%3E%3Ccircle cx='6.5' cy='6.5' r='4.2'/%3E%3Ccircle cx='25.5' cy='6.5' r='4.2'/%3E%3Ccircle cx='6.5' cy='25.5' r='4.2'/%3E%3Ccircle cx='25.5' cy='25.5' r='4.2'/%3E%3C/g%3E%3Crect x='12.5' y='12.5' width='7' height='7' rx='1.5' fill='%23111'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-  :root {
-    --panel: rgba(9,10,12,.88); --text: #b4bac4; --strong: #f2f4f7; --muted: #747c89;
-    --accent: #00f0ff; --accent-soft: rgba(0,240,255,.12); --pink: #ff2bd6; --yellow: #fcee0a; --line: rgba(255,255,255,.09);
-    --good: #39ff88; --bad: #ff3d9a;
-    --ui: "Rajdhani", "Segoe UI", system-ui, sans-serif; --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
-    --cut: 18px;
-  }
+  :root { --ink: #111; --text: #4a4a4a; --muted: #8c8c8c; --line: #e8e8e8; --g1: #D9D9D9; --g2: #BDBDBD; --ui: "Outfit", "Segoe UI", system-ui, sans-serif; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html { background: #101114; }
-  body {
-    font-family: var(--ui); font-size: 1.05rem; font-weight: 500; line-height: 1.45; color: var(--text);
-    background-color: #101114;
-    background-image:
-      linear-gradient(27deg, #151618 5px, transparent 5px), linear-gradient(207deg, #151618 5px, transparent 5px),
-      linear-gradient(27deg, #222 5px, transparent 5px), linear-gradient(207deg, #222 5px, transparent 5px),
-      linear-gradient(90deg, #1b1b1b 10px, transparent 10px),
-      linear-gradient(#1d1d1d 25%, #1a1a1a 25%, #1a1a1a 50%, transparent 50%, transparent 75%, #242424 75%, #242424);
-    background-position: 0 5px, 10px 0, 0 10px, 10px 5px, 0 0, 0 0;
-    background-size: 20px 20px;
-    min-height: 100vh;
-  }
-  body::before { content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
-    background: radial-gradient(800px 360px at 12% -80px, rgba(0,240,255,.20), transparent 70%), radial-gradient(700px 320px at 92% -60px, rgba(255,43,214,.20), transparent 70%), radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,.7) 100%); }
-  body::after { content: ""; position: fixed; inset: 0; z-index: 50; pointer-events: none; opacity: .5; background: repeating-linear-gradient(0deg, rgba(0,0,0,.22) 0 1px, transparent 1px 3px); }
-  .page { position: relative; z-index: 1; max-width: 1180px; margin: 0 auto; padding: 40px 24px 80px; }
+  html { scroll-behavior: smooth; overflow-x: hidden; }
+  body { overflow-x: hidden; font-family: var(--ui); font-weight: 400; line-height: 1.5; color: var(--text); min-height: 100vh; padding-bottom: 90px;
+    background: linear-gradient(90deg, var(--g1) 50%, #fff 50%) fixed; font-variant-numeric: tabular-nums; }
+  button { font: inherit; cursor: pointer; border: 0; background: none; color: inherit; }
+  a { color: inherit; }
 
-  header { position: relative; padding: 8px 0 26px; overflow: hidden; }
-  header::before { content: ""; position: absolute; inset: 0 -40px 0 -40px; pointer-events: none;
-    background: repeating-linear-gradient(100deg, transparent 0 46px, rgba(0,240,255,.12) 46px 48px, transparent 48px 83px, rgba(255,43,214,.10) 83px 85px, transparent 85px 120px);
-    animation: rush 1.4s linear infinite; mask-image: linear-gradient(90deg, transparent, #000 30%, #000 70%, transparent); -webkit-mask-image: linear-gradient(90deg, transparent, #000 30%, #000 70%, transparent); }
-  @keyframes rush { to { background-position: -168px 0; } }
-  .status { position: relative; font-family: var(--mono); font-size: .72rem; letter-spacing: .14em; color: var(--accent); text-transform: uppercase; display: flex; gap: 14px; align-items: center; }
-  .status svg { flex: none; margin-left: 2px; filter: drop-shadow(0 0 6px rgba(0,240,255,.6)); }
-  @keyframes pulse { 50% { opacity: .25; } }
-  h1 { position: relative; margin-top: 6px; font-size: clamp(2.4rem, 7vw, 4.2rem); font-weight: 700; font-style: italic; text-transform: uppercase; letter-spacing: .03em; line-height: 1; color: var(--strong); transform: skewX(-8deg); transform-origin: left; }
-  h1 span { position: relative; display: inline-block; color: var(--accent); text-shadow: 0 0 22px rgba(0,240,255,.7), 0 0 60px rgba(0,240,255,.35); }
-  h1 span::before, h1 span::after { content: attr(data-t); position: absolute; left: 0; top: 0; width: 100%; overflow: hidden; pointer-events: none; text-shadow: none; clip-path: inset(0 0 100% 0); }
-  h1 span::before { color: var(--pink); animation: glitchA 3.4s infinite steps(1); }
-  h1 span::after { color: var(--yellow); animation: glitchB 3.4s infinite steps(1); }
-  @keyframes glitchA { 0%,90%,100% { clip-path: inset(0 0 100% 0); transform: none; } 91% { clip-path: inset(15% 0 55% 0); transform: translate(-6px,0); } 94% { clip-path: inset(60% 0 8% 0); transform: translate(5px,0); } 97% { clip-path: inset(35% 0 40% 0); transform: translate(-3px,0); } }
-  @keyframes glitchB { 0%,91%,100% { clip-path: inset(0 0 100% 0); transform: none; } 92% { clip-path: inset(50% 0 20% 0); transform: translate(6px,0); } 95% { clip-path: inset(8% 0 70% 0); transform: translate(-5px,0); } 98% { clip-path: inset(72% 0 5% 0); transform: translate(3px,0); } }
-  .sub { position: relative; margin-top: 10px; max-width: 58ch; color: var(--muted); font-size: 1.05rem; }
+  /* ---------- Bühne: schwebende Karte ---------- */
+  .stage { position: relative; width: min(1180px, calc(100% - 48px)); margin: 48px auto 0; background: #fff; border-radius: 16px;
+    box-shadow: 0 60px 140px rgba(0,0,0,.18), 0 14px 40px rgba(0,0,0,.07); display: grid; grid-template-columns: 2fr 1fr; min-height: 720px; }
+  .main { position: relative; overflow: hidden; display: flex; flex-direction: column; padding: 118px 48px 0 56px; min-width: 0; }
+  .side { background: var(--g2); border-radius: 0 16px 16px 0; display: flex; align-items: flex-end; justify-content: flex-end; padding: 28px; }
+  .drone { position: absolute; z-index: 3; top: 96px; left: calc(66.667% - 21%); width: 42%; pointer-events: none; filter: drop-shadow(0 40px 36px rgba(0,0,0,.28)); animation: hover 5s ease-in-out infinite; }
+  @keyframes hover { 0%,100% { transform: translateY(0) rotate(-1.5deg); } 50% { transform: translateY(-14px) rotate(1.5deg); } }
+  .prop { transform-box: fill-box; transform-origin: center; animation: spin .5s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
-  .label { font-size: .85rem; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--strong); margin-bottom: 16px; display: flex; align-items: center; gap: 12px; }
-  .label::before { content: ""; flex: none; width: 26px; height: 10px; background: repeating-linear-gradient(115deg, var(--accent) 0 5px, transparent 5px 9px, var(--pink) 9px 14px, transparent 14px 18px); width: 34px; }
-  .group { margin: 44px 0 -8px; }
+  /* Navigation */
+  nav { position: absolute; z-index: 6; top: 26px; left: 40px; right: 40px; display: flex; align-items: center; gap: 28px; }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: -.01em; color: var(--ink); text-decoration: none; }
+  .menu { display: flex; gap: 24px; margin-left: 12px; }
+  .menu a { color: var(--muted); text-decoration: none; font-size: .95rem; font-weight: 500; padding: 4px 0; border-bottom: 2px solid transparent; transition: color .2s; }
+  .menu a:hover { color: var(--ink); }
+  .menu a.on { color: var(--ink); border-color: var(--ink); }
+  .tools { margin-left: auto; display: flex; align-items: center; gap: 6px; position: relative; }
+  .ic { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; color: var(--ink); transition: background .2s; }
+  .ic:hover, .ic.on { background: rgba(0,0,0,.08); }
+  .ic svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  #q { width: 0; opacity: 0; border: 0; padding: 0; font: inherit; font-size: .9rem; color: var(--ink); background: rgba(255,255,255,.7); border-radius: 999px; outline: none; transition: width .3s, opacity .2s, padding .3s; }
+  #q.open { width: 180px; opacity: 1; padding: 8px 14px; }
+  .pop { position: absolute; top: 48px; right: 0; width: 230px; background: #fff; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.2); padding: 6px; display: none; z-index: 10; }
+  .pop.open { display: block; }
+  .pop button, .pop label { display: block; width: 100%; text-align: left; padding: 10px 12px; border-radius: 8px; font-size: .92rem; color: var(--ink); cursor: pointer; }
+  .pop button:hover, .pop label:hover { background: #f3f3f3; }
+  .pop hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; }
+  .pop .del { color: #6b6b6b; }
 
-  .bar { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0 8px; position: relative; }
-  button, .btn { font: inherit; font-size: .95rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--strong);
-    background: rgba(255,255,255,.07); border: 0; padding: 11px 26px; cursor: pointer; transition: .18s;
-    clip-path: polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%); }
-  button:hover, .btn:hover { background: rgba(255,255,255,.14); color: var(--accent); }
-  button.primary { background: var(--accent); color: #001418; }
-  button.primary { box-shadow: 0 0 18px rgba(0,240,255,.35); }
-  button.primary:hover { background: var(--pink); color: #14000f; box-shadow: 0 0 26px rgba(255,43,214,.6); }
-  button.danger:hover { color: var(--bad); }
-  #drop { position: relative; margin: 14px 0 0; padding: 16px; border: 1px dashed rgba(255,255,255,.18); text-align: center; font-size: .95rem; letter-spacing: .06em; color: var(--muted); transition: .2s; background: rgba(0,0,0,.35); }
-  #drop.over { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
-  #msg { position: relative; margin-top: 10px; min-height: 1.4em; font-family: var(--mono); font-size: .78rem; color: var(--muted); }
-  #msg.err { color: var(--bad); }
+  /* Hero */
+  .wm { position: absolute; z-index: 0; left: 28px; top: 78px; font-size: clamp(8rem, 18vw, 17rem); font-weight: 800; letter-spacing: -.05em; line-height: 1; color: #f2f2f2; user-select: none; pointer-events: none; }
+  .hero { position: relative; z-index: 1; max-width: 560px; }
+  h1 { font-size: clamp(2.6rem, 5.2vw, 4.4rem); font-weight: 800; letter-spacing: -.04em; line-height: 1; color: var(--ink); }
+  .subline { margin-top: 16px; font-size: 1.1rem; color: var(--muted); max-width: 34ch; font-weight: 300; }
+  .actions { margin-top: 28px; display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+  .btn-o { display: inline-block; padding: 13px 28px; border: 1.5px solid var(--ink); border-radius: 999px; font-weight: 600; font-size: .95rem; color: var(--ink); cursor: pointer; transition: background .2s, color .2s; }
+  .btn-o:hover { background: var(--ink); color: #fff; }
+  .link { font-size: .92rem; font-weight: 500; color: var(--muted); text-decoration: underline; text-underline-offset: 4px; }
+  .link:hover { color: var(--ink); }
+  #msg { margin-top: 14px; min-height: 1.3em; font-size: .85rem; color: var(--muted); max-width: 52ch; }
+  #msg.err { color: var(--ink); font-weight: 600; }
 
-  .panel { position: relative; margin-top: 26px; padding: 24px; background: var(--panel); border-left: 3px solid var(--accent); box-shadow: inset 8px 0 16px -12px var(--accent), inset 0 0 0 1px rgba(0,240,255,.05);
-    clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, var(--cut) 100%, 0 calc(100% - var(--cut))); }
-  .panel::after { content: ""; position: absolute; top: 0; right: 0; width: var(--cut); height: var(--cut);
-    background: linear-gradient(to bottom left, transparent calc(50% - 1px), var(--accent) calc(50% - 1px), var(--accent) calc(50% + 1px), transparent calc(50% + 1px)); }
-  .empty { text-align: center; padding: 70px 20px; color: var(--muted); letter-spacing: .04em; }
+  /* Flug-Slider */
+  .slider { position: relative; z-index: 1; display: flex; align-items: center; gap: 8px; margin-top: 34px; max-width: 640px; }
+  .thumbs { display: flex; gap: 18px; overflow-x: auto; scroll-snap-type: x proximity; padding: 8px 4px 6px; scrollbar-width: none; }
+  .thumbs::-webkit-scrollbar { display: none; }
+  .th { flex: none; scroll-snap-align: start; display: flex; flex-direction: column; align-items: center; gap: 7px; width: 70px; }
+  .th .c { width: 58px; height: 58px; border-radius: 50%; background: #f5f5f5; border: 2px solid #e2e2e2; display: grid; place-items: center; transition: transform .2s, border-color .2s, box-shadow .2s; }
+  .th:hover .c { transform: translateY(-3px); }
+  .th.on .c { border-color: var(--ink); background: #fff; box-shadow: 0 8px 22px rgba(0,0,0,.18); }
+  .th svg { width: 40px; height: 40px; }
+  .th .n { font-size: .74rem; font-weight: 500; color: var(--muted); max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .th.on .n { color: var(--ink); font-weight: 600; }
+  .arrow { flex: none; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); display: grid; place-items: center; color: var(--muted); font-size: .85rem; }
+  .arrow:hover { color: var(--ink); border-color: var(--ink); }
+  .none { font-size: .95rem; color: var(--muted); padding: 10px 0; }
 
-  /* Ausfahrbare Bereiche */
-  .fold { padding: 0; }
-  .fold > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 14px; padding: 20px 56px 20px 24px; position: relative; transition: background .18s; }
-  .fold > summary::-webkit-details-marker { display: none; }
-  .fold > summary:hover { background: rgba(255,255,255,.04); }
-  .fold > summary .label { margin: 0; }
-  .fold > summary .hint { color: var(--muted); font-size: .92rem; }
-  .fold > summary::after { content: ""; position: absolute; right: 30px; top: 50%; width: 10px; height: 10px; margin-top: -8px;
-    border-right: 2px solid var(--accent); border-bottom: 2px solid var(--accent); transform: rotate(45deg); transition: transform .25s; }
-  .fold[open] > summary::after { transform: rotate(-135deg); margin-top: -2px; }
-  .fold-body { padding: 4px 24px 26px; border-top: 1px solid var(--line); }
-  .fold-body > *:first-child { margin-top: 20px; }
-  .sublabel { margin: 26px 0 10px; font-size: .78rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+  /* Stat-Leiste */
+  .statbar { position: relative; z-index: 1; margin-top: auto; display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid var(--line); }
+  .st { padding: 24px 18px 28px; border-left: 1px solid var(--line); min-width: 0; }
+  .st:first-child { border-left: 0; padding-left: 0; }
+  .st .v { font-size: clamp(1.6rem, 2.7vw, 2.4rem); font-weight: 700; letter-spacing: -.03em; color: var(--ink); line-height: 1.1; white-space: nowrap; }
+  .st .v small { font-size: .85rem; font-weight: 500; color: var(--muted); margin-left: 4px; letter-spacing: 0; }
+  .st .k { margin-top: 6px; font-size: .68rem; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  .st .d { margin-top: 2px; font-size: .72rem; color: var(--muted); min-height: 1em; }
 
-  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
-  .tile { position: relative; padding: 16px 18px 18px; background: rgba(255,255,255,.04); clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%); }
-  .tile .k { font-size: .78rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
-  .tile .v { font-family: var(--mono); font-weight: 700; font-size: 2.2rem; color: var(--strong); line-height: 1.15; margin-top: 4px; }
-  .tile .v small { font-size: .9rem; color: var(--muted); font-weight: 500; margin-left: 4px; }
-  .tile .d { font-family: var(--mono); font-size: .75rem; margin-top: 2px; min-height: 1.1em; color: var(--muted); }
-  .tile .d.good { color: var(--good); } .tile .d.bad { color: var(--bad); }
-  .tile .gauge { height: 8px; margin-top: 12px; background: repeating-linear-gradient(90deg, rgba(255,255,255,.07) 0 6px, transparent 6px 9px); }
-  .tile .gauge b { display: block; height: 100%; background: repeating-linear-gradient(90deg, rgba(0,240,255,.55) 0 6px, transparent 6px 9px); }
-  .who { font-size: .8rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: -6px 0 14px; }
-  .who b { color: var(--strong); }
-  .verdict { margin-top: 16px; padding: 12px 16px; background: rgba(255,255,255,.04); border-left: 3px solid var(--muted); }
-  .verdict.good { border-color: var(--good); } .verdict.warn { border-color: #facc15; } .verdict.bad { border-color: var(--bad); }
-  .verdict b { color: var(--strong); }
+  /* CTA im grauen Panel */
+  .cta { position: relative; z-index: 4; display: flex; align-items: center; justify-content: space-between; gap: 22px; width: min(100%, 260px); padding: 22px 24px; background: #2b2b2b; color: #fff; border-radius: 12px; text-decoration: none; font-weight: 600; box-shadow: 0 16px 40px rgba(0,0,0,.28); transition: transform .2s, background .2s; }
+  .cta:hover { background: #000; transform: translateY(-3px); }
+  .cta small { display: block; font-weight: 300; font-size: .75rem; color: #bbb; margin-bottom: 2px; }
+  .cta .ar { width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,.5); display: grid; place-items: center; font-size: 1.1rem; transition: transform .2s; }
+  .cta:hover .ar { transform: translateX(4px); }
 
-  .chips { display: flex; flex-wrap: wrap; gap: 10px; }
-  .chip { display: flex; align-items: center; gap: 10px; padding: 9px 10px 9px 18px; background: rgba(255,255,255,.05); cursor: pointer; user-select: none; transition: .18s;
-    font-weight: 600; letter-spacing: .05em; clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); box-shadow: inset 3px 0 0 var(--muted); }
-  .chip .dot { width: 9px; height: 9px; background: var(--muted); transform: skewX(-20deg); }
-  .chip.on { background: rgba(255,255,255,.1); color: var(--strong); box-shadow: inset 3px 0 0 var(--c); }
-  .chip.on .dot { background: var(--c); box-shadow: 0 0 10px var(--c); }
-  .chip small { font-family: var(--mono); font-size: .68rem; color: var(--muted); font-weight: 400; }
-  .chip .x { padding: 0 12px 0 6px; background: none; clip-path: none; font-size: 1.1rem; color: var(--muted); letter-spacing: 0; }
-  .chip .x:hover { color: var(--bad); background: none; }
-  .chip .x.ed { padding: 0 2px 0 6px; font-size: 1rem; }
-  .chip .x.ed:hover { color: var(--accent); }
-  .chip small.loc { color: var(--accent); font-family: var(--ui); font-size: .8rem; font-weight: 600; letter-spacing: .04em; }
-  dialog { margin: auto; border: 0; padding: 26px; width: min(420px, calc(100vw - 32px)); background: #0a0b0e; color: var(--text); border-left: 3px solid var(--accent);
-    box-shadow: 0 0 0 1px var(--line), 0 20px 80px rgba(0,0,0,.8), 0 0 40px rgba(0,240,255,.12); clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%); }
-  dialog::backdrop { background: rgba(0,0,0,.7); backdrop-filter: blur(3px); }
-  dialog h3 { color: var(--strong); font-size: 1.1rem; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 16px; }
-  dialog label { display: block; font-size: .78rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-top: 14px; }
-  dialog input { display: block; width: 100%; margin-top: 6px; font: inherit; font-size: 1rem; color: var(--strong); background: #06070a; border: 1px solid var(--line); padding: 10px 12px; outline: none; }
-  dialog input:focus { border-color: var(--accent); box-shadow: 0 0 12px rgba(0,240,255,.25); }
-  .dbtns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; }
+  /* ---------- Weitere Karten ---------- */
+  .cards { width: min(1180px, calc(100% - 48px)); margin: 36px auto 0; display: grid; gap: 18px; }
+  .card { background: #fff; border-radius: 16px; box-shadow: 0 24px 70px rgba(0,0,0,.1), 0 6px 18px rgba(0,0,0,.04); scroll-margin-top: 24px; }
+  .card > summary { list-style: none; cursor: pointer; display: flex; align-items: baseline; gap: 16px; padding: 24px 64px 24px 32px; position: relative; border-radius: 16px; }
+  .card > summary::-webkit-details-marker { display: none; }
+  .card > summary:hover { background: #fafafa; }
+  .card .ttl { font-size: 1.25rem; font-weight: 700; letter-spacing: -.02em; color: var(--ink); }
+  .card .hint { font-size: .9rem; color: var(--muted); font-weight: 300; }
+  .card > summary::after { content: ""; position: absolute; right: 34px; top: 50%; width: 9px; height: 9px; margin-top: -7px; border-right: 2px solid var(--ink); border-bottom: 2px solid var(--ink); transform: rotate(45deg); transition: transform .25s; }
+  .card[open] > summary::after { transform: rotate(-135deg); margin-top: -2px; }
+  .fold-body { padding: 4px 32px 34px; border-top: 1px solid var(--line); }
+  .fold-body > *:first-child { margin-top: 24px; }
+  .sublabel { margin: 30px 0 10px; font-size: .72rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .note { font-size: .86rem; color: var(--muted); margin-top: 14px; max-width: 80ch; }
 
-  .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
-  .tab { padding: 8px 20px; font-size: .85rem; }
-  .tab.on { background: var(--accent); color: #001418; }
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+  .tab { padding: 8px 18px; border-radius: 999px; border: 1px solid var(--line); font-size: .88rem; font-weight: 500; color: var(--muted); transition: .2s; }
+  .tab:hover { color: var(--ink); border-color: var(--ink); }
+  .tab.on { background: var(--ink); border-color: var(--ink); color: #fff; }
   .chartbox { position: relative; height: 350px; }
-  .row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
-  .row .label { margin: 0; }
-  select { font: inherit; font-weight: 600; letter-spacing: .05em; color: var(--strong); background: #0b0c0e; border: 1px solid var(--line); padding: 7px 12px; }
+  .row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
+  select { font: inherit; font-size: .9rem; color: var(--ink); background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px; outline: none; }
 
   table { width: 100%; border-collapse: collapse; }
-  th, td { text-align: right; padding: 11px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th, td { text-align: right; padding: 13px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; font-size: .92rem; }
   th:first-child, td:first-child { text-align: left; }
-  th { font-size: .74rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
-  td { font-family: var(--mono); font-size: .88rem; color: var(--strong); }
-  td:first-child { font-family: var(--ui); font-size: 1rem; font-weight: 600; letter-spacing: .04em; }
-  td.best { color: var(--good); } td.worst { color: var(--bad); }
+  th { font-size: .68rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  td { color: var(--ink); }
+  td.best { font-weight: 700; }
+  td.worst { color: var(--muted); text-decoration: underline dotted; text-underline-offset: 4px; }
   .scrollx { overflow-x: auto; }
-  .note { font-size: .88rem; color: var(--muted); margin-top: 14px; }
+  .sw { display: inline-block; width: 22px; height: 0; border-top: 3px solid var(--c); margin-right: 10px; vertical-align: middle; }
+  .sw.dash { border-top-style: dashed; }
 
-  /* Rekorde */
+  .who { font-size: .72rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+  .who b { color: var(--ink); }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+  .tile { padding: 20px 22px; border: 1px solid var(--line); border-radius: 12px; }
+  .tile .k { font-size: .68rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  .tile .v { font-size: 2.1rem; font-weight: 700; letter-spacing: -.03em; color: var(--ink); line-height: 1.2; margin-top: 4px; }
+  .tile .v small { font-size: .85rem; font-weight: 500; color: var(--muted); margin-left: 4px; }
+  .tile .d { font-size: .78rem; color: var(--muted); margin-top: 2px; min-height: 1.1em; }
+  .tile .gauge { height: 4px; margin-top: 12px; background: #eee; border-radius: 4px; overflow: hidden; }
+  .tile .gauge b { display: block; height: 100%; background: var(--ink); border-radius: 4px; }
+  .verdict { margin-top: 16px; padding: 14px 18px; background: #f7f7f7; border-radius: 10px; border-left: 3px solid var(--g2); color: var(--text); }
+  .verdict b { color: var(--ink); }
+  .verdict.warn { border-left-color: #777; }
+  .verdict.bad { border-left-color: var(--ink); background: #efefef; }
+
   .recs { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
-  .rec { padding: 18px 18px 14px; background: rgba(255,255,255,.04); clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%); }
-  .rec h4 { font-size: 1.05rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--strong); }
-  .rec .sub2 { font-size: .85rem; color: var(--muted); }
-  .rec .top { margin: 12px 0 8px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-  .rec .big { font-family: var(--mono); font-size: 2rem; font-weight: 700; color: var(--strong); }
+  .rec { padding: 22px; border: 1px solid var(--line); border-radius: 12px; }
+  .rec h4 { font-size: 1rem; font-weight: 700; letter-spacing: -.01em; color: var(--ink); }
+  .rec .sub2 { font-size: .8rem; color: var(--muted); }
+  .rec .top { margin: 14px 0 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .rec .big { font-size: 2rem; font-weight: 700; letter-spacing: -.03em; color: var(--ink); }
   .rec .big small { font-size: .85rem; color: var(--muted); font-weight: 500; }
-  .badge { font-size: .7rem; font-weight: 700; letter-spacing: .16em; padding: 2px 10px; background: var(--accent); color: #001418; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
-  .rank { display: grid; grid-template-columns: 62px 1fr 78px; gap: 10px; align-items: center; font-size: .85rem; padding: 3px 0; }
-  .rank .nm { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .rank .nm.sel { color: var(--strong); font-weight: 700; }
-  .rank .track { height: 6px; background: rgba(255,255,255,.07); transform: skewX(-25deg); }
-  .rank .track b { display: block; height: 100%; }
-  .rank .val { font-family: var(--mono); font-size: .78rem; text-align: right; color: var(--strong); }
-  .rank.win .val { color: var(--accent); }
+  .badge { font-size: .62rem; font-weight: 700; letter-spacing: .14em; padding: 3px 10px; background: var(--ink); color: #fff; border-radius: 999px; }
+  .rank { display: grid; grid-template-columns: 62px 1fr 80px; gap: 10px; align-items: center; font-size: .82rem; padding: 3px 0; }
+  .rank .nm { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rank .nm.sel { color: var(--ink); font-weight: 600; }
+  .rank .track { height: 6px; background: #eee; border-radius: 6px; overflow: hidden; }
+  .rank .track b { display: block; height: 100%; border-radius: 6px; }
+  .rank .val { text-align: right; color: var(--muted); }
+  .rank.win .val { color: var(--ink); font-weight: 700; }
 
-  @media (max-width: 700px) { .chartbox { height: 280px; } .page { padding-top: 26px; } .panel { padding: 18px; } .fold { padding: 0; }
-    .fold > summary { padding: 18px 48px 18px 18px; flex-wrap: wrap; gap: 4px 14px; } .fold-body { padding: 4px 18px 22px; } }
-  @media (prefers-reduced-motion: reduce) { header::before, h1 span::before, h1 span::after { animation: none; } }
+  .empty { padding: 60px 20px; text-align: center; color: var(--muted); }
+  .rowact button { padding: 6px 14px; border-radius: 999px; border: 1px solid var(--line); font-size: .8rem; color: var(--muted); margin-left: 6px; }
+  .rowact button:hover { color: var(--ink); border-color: var(--ink); }
+  .chk { width: 18px; height: 18px; accent-color: var(--ink); cursor: pointer; }
+
+  dialog { margin: auto; border: 0; padding: 30px; width: min(420px, calc(100vw - 32px)); background: #fff; color: var(--text); border-radius: 16px; box-shadow: 0 40px 120px rgba(0,0,0,.35); }
+  dialog::backdrop { background: rgba(0,0,0,.35); backdrop-filter: blur(3px); }
+  dialog h3 { color: var(--ink); font-size: 1.2rem; font-weight: 700; letter-spacing: -.02em; margin-bottom: 8px; }
+  dialog label { display: block; font-size: .68rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-top: 16px; }
+  dialog input { display: block; width: 100%; margin-top: 6px; font: inherit; font-size: 1rem; color: var(--ink); background: #fff; border: 1px solid #d5d5d5; border-radius: 10px; padding: 11px 14px; outline: none; }
+  dialog input:focus { border-color: var(--ink); }
+  .dbtns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 26px; }
+  .dbtns button { padding: 11px 24px; border-radius: 999px; font-weight: 600; border: 1.5px solid var(--ink); }
+  .dbtns button.primary { background: var(--ink); color: #fff; }
+  #over { position: fixed; inset: 0; z-index: 100; display: none; place-items: center; background: rgba(255,255,255,.85); backdrop-filter: blur(4px); font-size: 1.6rem; font-weight: 700; color: var(--ink); letter-spacing: -.02em; }
+  #over.on { display: grid; }
+
+  @media (max-width: 900px) {
+    body { background: var(--g1); }
+    .stage { grid-template-columns: 1fr; margin-top: 16px; width: calc(100% - 24px); }
+    .main { padding: 96px 22px 0; }
+    .side { border-radius: 0 0 16px 16px; min-height: 300px; align-items: flex-end; justify-content: center; }
+    .drone { position: relative; top: auto; left: auto; width: min(360px, 80%); margin: 10px auto -20px; }
+    .side { flex-direction: column; justify-content: space-between; align-items: center; padding-bottom: 20px; }
+    .cta { width: 100%; }
+    nav { left: 18px; right: 18px; gap: 14px; }
+    .menu { display: none; }
+    .statbar { grid-template-columns: repeat(2, 1fr); }
+    .st, .st:first-child { padding: 18px 12px 18px 0; border-left: 0; border-bottom: 1px solid var(--line); }
+    .wm { font-size: 7rem; top: 90px; }
+    .cards { width: calc(100% - 24px); }
+    .card > summary { flex-wrap: wrap; gap: 2px 14px; padding: 20px 52px 20px 22px; }
+    .fold-body { padding: 4px 20px 26px; }
+    .chartbox { height: 280px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .drone, .prop { animation: none; } html { scroll-behavior: auto; } }
 </style>
 </head>
 <body>
-<div class="page">
-  <header>
-    <div class="status"><svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><g stroke="#00f0ff" stroke-width="2" stroke-linecap="round"><line x1="9" y1="9" x2="23" y2="23"/><line x1="23" y1="9" x2="9" y2="23"/></g><g fill="none" stroke="#00f0ff" stroke-width="1.6"><circle cx="6.5" cy="6.5" r="4.2"/><circle cx="25.5" cy="6.5" r="4.2"/><circle cx="6.5" cy="25.5" r="4.2"/><circle cx="25.5" cy="25.5" r="4.2"/></g><rect x="12.5" y="12.5" width="7" height="7" rx="1.5" fill="#0a0a0c" stroke="#ff2bd6" stroke-width="1.6"/></svg>Betaflight · Blackbox · 1 Hz</div>
-    <h1>Drohnen<span data-t="Telemetrie">Telemetrie</span></h1>
-    <p class="sub">Flugdaten deiner Drohne als Graphen. Lege mehrere Flüge übereinander und sieh, was sich verändert hat.</p>
-  </header>
 
-  <div class="bar">
-    <button class="primary" id="btnSample">Beispieldaten laden</button>
-    <label class="btn" for="file">CSV importieren</label>
-    <input type="file" id="file" accept=".csv,.txt" multiple hidden>
-    <button id="btnExport">Backup speichern</button>
-    <label class="btn" for="fileBackup">Backup laden</label>
-    <input type="file" id="fileBackup" accept=".json" hidden>
-    <button class="danger" id="btnClear">Alle löschen</button>
+<div class="stage" id="top">
+  <nav>
+    <a class="logo" href="#top">
+      <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><g stroke="#111" stroke-width="2" stroke-linecap="round"><line x1="9" y1="9" x2="23" y2="23"/><line x1="23" y1="9" x2="9" y2="23"/></g><g fill="none" stroke="#111" stroke-width="1.6"><circle cx="6.5" cy="6.5" r="4.2"/><circle cx="25.5" cy="6.5" r="4.2"/><circle cx="6.5" cy="25.5" r="4.2"/><circle cx="25.5" cy="25.5" r="4.2"/></g><rect x="12.5" y="12.5" width="7" height="7" rx="1.5" fill="#111"/></svg>
+      Telemetrie
+    </a>
+    <div class="menu" id="menu">
+      <a href="#top" data-go="top" class="on">Übersicht</a>
+      <a href="#sec-compare" data-go="compare">Vergleich</a>
+      <a href="#sec-battery" data-go="battery">Analysen</a>
+      <a href="#sec-fun" data-go="fun">Rekorde</a>
+      <a href="#sec-list" data-go="list">Flüge</a>
+    </div>
+    <div class="tools">
+      <input id="q" type="search" placeholder="Flug oder Standort suchen" autocomplete="off">
+      <button class="ic" id="btnSearch" title="Suchen" aria-label="Suchen"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><line x1="16" y1="16" x2="21" y2="21"/></svg></button>
+      <button class="ic" id="btnProfile" title="Daten und Backup" aria-label="Daten und Backup"><svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="4"/><path d="M4 21c0-4.4 3.6-7.5 8-7.5s8 3.1 8 7.5"/></svg></button>
+      <div class="pop" id="pop">
+        <button id="btnSample">Beispieldaten laden</button>
+        <hr>
+        <button id="btnExport">Backup speichern</button>
+        <label for="fileBackup">Backup laden</label>
+        <input type="file" id="fileBackup" accept=".json" hidden>
+        <hr>
+        <button class="del" id="btnClear">Alle Flüge löschen</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main">
+    <div class="wm" aria-hidden="true">FLIGHT</div>
+    <div class="hero">
+      <h1>Drohnen-<br>Telemetrie</h1>
+      <p class="subline">Flugdaten deiner Drohne als Graphen. Mehrere Flüge direkt vergleichen.</p>
+      <div class="actions">
+        <label class="btn-o" for="file">Log hochladen</label>
+        <input type="file" id="file" accept=".csv,.txt" multiple hidden>
+        <a class="link" href="#" id="linkSample">Mit Beispieldaten starten</a>
+      </div>
+      <div id="msg"></div>
+    </div>
+    <div class="slider">
+      <button class="arrow" id="prev" aria-label="Zurück">&#8592;</button>
+      <div class="thumbs" id="thumbs"></div>
+      <button class="arrow" id="next" aria-label="Weiter">&#8594;</button>
+    </div>
+    <div class="statbar" id="statbar"></div>
   </div>
-  <div id="drop">CSV-Dateien aus dem Blackbox Explorer hierher ziehen</div>
-  <div id="msg"></div>
 
-  <div id="app"></div>
+  <div class="side">
+    <svg class="drone" viewBox="0 0 520 380" aria-hidden="true">
+      <defs>
+        <linearGradient id="arm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a4a4a"/><stop offset="1" stop-color="#151515"/></linearGradient>
+        <linearGradient id="body" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5a5a5a"/><stop offset=".5" stop-color="#262626"/><stop offset="1" stop-color="#0d0d0d"/></linearGradient>
+        <radialGradient id="mot" cx=".35" cy=".3"><stop offset="0" stop-color="#8a8a8a"/><stop offset="1" stop-color="#1a1a1a"/></radialGradient>
+        <radialGradient id="disc" cx=".5" cy=".5"><stop offset="0" stop-color="#fff" stop-opacity=".05"/><stop offset=".85" stop-color="#fff" stop-opacity=".25"/><stop offset="1" stop-color="#fff" stop-opacity=".55"/></radialGradient>
+      </defs>
+      <g transform="translate(260 190)">
+        <g stroke-linecap="round">
+          <line x1="-150" y1="-100" x2="150" y2="100" stroke="url(#arm)" stroke-width="16"/>
+          <line x1="150" y1="-100" x2="-150" y2="100" stroke="url(#arm)" stroke-width="16"/>
+          <line x1="-150" y1="-100" x2="150" y2="100" stroke="#fff" stroke-opacity=".12" stroke-width="3" transform="translate(0 -4)"/>
+          <line x1="150" y1="-100" x2="-150" y2="100" stroke="#fff" stroke-opacity=".12" stroke-width="3" transform="translate(0 -4)"/>
+        </g>
+        <g id="rot"><g transform="translate(-150 -100)"><circle r="82" fill="url(#disc)" stroke="#999" stroke-opacity=".6"/><g class="prop"><ellipse rx="78" ry="6" fill="#333" opacity=".9"/><ellipse rx="78" ry="6" fill="#333" opacity=".9" transform="rotate(60)"/><ellipse rx="78" ry="6" fill="#333" opacity=".9" transform="rotate(120)"/></g><circle r="17" fill="url(#mot)"/><circle r="5" fill="#d0d0d0"/></g></g>
+        <g transform="translate(150 -100)"><circle r="82" fill="url(#disc)" stroke="#999" stroke-opacity=".6"/><g class="prop"><ellipse rx="78" ry="6" fill="#333" opacity=".9"/><ellipse rx="78" ry="6" fill="#333" opacity=".9" transform="rotate(60)"/><ellipse rx="78" ry="6" fill="#333" opacity=".9" transform="rotate(120)"/></g><circle r="17" fill="url(#mot)"/><circle r="5" fill="#d0d0d0"/></g>
+        <g transform="translate(-150 100)"><circle r="82" fill="url(#disc)" stroke="#999" stroke-opacity=".6"/><g class="prop"><ellipse rx="78" ry="6" fill="#333" opacity=".9"/><ellipse rx="78" ry="6" fill="#333" opacity=".9" transform="rotate(60)"/><ellipse rx="78" ry="6" fill="#333" opacity=".9" transform="rotate(120)"/></g><circle r="17" fill="url(#mot)"/><circle r="5" fill="#d0d0d0"/></g>
+        <g transform="translate(150 100)"><circle r="82" fill="url(#disc)" stroke="#999" stroke-opacity=".6"/><g class="prop"><ellipse rx="78" ry="6" fill="#333" opacity=".9"/><ellipse rx="78" ry="6" fill="#333" opacity=".9" transform="rotate(60)"/><ellipse rx="78" ry="6" fill="#333" opacity=".9" transform="rotate(120)"/></g><circle r="17" fill="url(#mot)"/><circle r="5" fill="#d0d0d0"/></g>
+        <rect x="-62" y="-44" width="124" height="88" rx="26" fill="url(#body)"/>
+        <rect x="-62" y="-44" width="124" height="88" rx="26" fill="none" stroke="#fff" stroke-opacity=".18"/>
+        <rect x="-40" y="-26" width="80" height="14" rx="7" fill="#fff" fill-opacity=".1"/>
+        <rect x="-24" y="8" width="48" height="22" rx="6" fill="#0a0a0a" stroke="#fff" stroke-opacity=".12"/>
+        <circle cx="0" cy="-56" r="13" fill="#111" stroke="#9a9a9a" stroke-width="2"/><circle cx="0" cy="-56" r="6" fill="#444"/><circle cx="-2" cy="-58" r="2" fill="#fff" fill-opacity=".7"/>
+      </g>
+    </svg>
+    <a class="cta" href="#sec-compare" data-go="compare"><span><small>Alle gewählten Flüge</small>Flüge vergleichen</span><span class="ar">&#8594;</span></a>
+  </div>
 </div>
+
+<div class="cards" id="cards"></div>
+
+<div id="over">Dateien hier ablegen</div>
 
 <dialog id="dlg">
   <form method="dialog">
@@ -202,7 +292,7 @@
 
 <script>
 /* ---------- Konstanten ---------- */
-const COLORS = ["#00f0ff", "#ff2bd6", "#fcee0a", "#39ff88", "#a06bff", "#3b82f6", "#ff8ad8", "#2dd4bf"];
+const COLORS = ["#111111", "#555555", "#8a8a8a", "#b4b4b4"];
 const METRICS = {
   volt:  { label: "Akkuspannung", unit: "V",  key: "v",  dec: 2 },
   amp:   { label: "Strom",        unit: "A",  key: "a",  dec: 1 },
@@ -237,7 +327,8 @@ const SECTIONS = {
   battery: { title: "Akku-Gesundheit", hint: "Innenwiderstand und Spannungseinbruch", charts: ["cb1", "cb2"] },
   motor:   { title: "Motorbalance",    hint: "Arbeiten alle vier Motoren gleich viel?", charts: ["cm1"] },
   noise:   { title: "Rauschspektrum",  hint: "Vibrationen nach Frequenz", charts: ["cn1"] },
-  fun:     { title: "Rekorde",         hint: "Schnellster, tiefster, stärkster Flug", charts: [] }
+  fun:     { title: "Rekorde",         hint: "Schnellster, tiefster, stärkster Flug", charts: [] },
+  list:    { title: "Flugliste",       hint: "Alle Flüge verwalten, benennen und auswählen", charts: [] }
 };
 
 /* ---------- Zustand ---------- */
@@ -537,7 +628,7 @@ function batteryHTML(sel) {
     <div class="sublabel">Innenwiderstand über alle Flüge</div>
     <div class="chartbox" style="height:240px"><canvas id="cb2"></canvas></div>
     <div class="scrollx" style="margin-top:20px"><table><thead><tr><th>Flug</th><th>Innenwiderstand</th><th>Spannungseinbruch</th><th>Verbrauch</th></tr></thead><tbody>
-      ${sel.map(f => `<tr><td><span style="color:${colorOf(f)}">■</span> ${esc(f.name)}</td>
+      ${sel.map(f => `<tr><td>${sw(f)}${esc(f.name)}</td>
         <td class="${sel.length > 1 && f.stats.ir != null ? cls(f.stats.ir, bIr, wIr) : ""}">${fmt(f.stats.ir, 0)} mΩ</td>
         <td>${fmt(f.stats.startV - f.stats.minV, 2)} V</td><td>${fmt(f.stats.mah, 0)} mAh</td></tr>`).join("")}
     </tbody></table></div>
@@ -554,7 +645,7 @@ function motorHTML(sel) {
   return `<div class="sublabel" style="margin-top:0">Abweichung jedes Motors vom Durchschnitt aller vier</div>
     <div class="chartbox" style="height:300px"><canvas id="cm1"></canvas></div>
     <div class="scrollx" style="margin-top:20px"><table><thead><tr><th>Flug</th><th>M1</th><th>M2</th><th>M3</th><th>M4</th><th>Unterschied</th><th>Bewertung</th></tr></thead><tbody>
-      ${sel.map((f, i) => `<tr><td><span style="color:${colorOf(f)}">■</span> ${esc(f.name)}</td>
+      ${sel.map((f, i) => `<tr><td>${sw(f)}${esc(f.name)}</td>
         ${f.stats.mAvg.map(v => `<td>${fmt(v, 1)} %</td>`).join("")}
         <td>${fmt(spread[i], 1)} %</td>
         <td class="${spread[i] == null ? "" : spread[i] > 20 ? "worst" : spread[i] > 10 ? "" : "best"}">${spread[i] == null ? "keine Daten" : spread[i] > 20 ? "auffällig" : spread[i] > 10 ? "leicht ungleich" : "ausgeglichen"}</td></tr>`).join("")}
@@ -568,7 +659,7 @@ function noiseHTML(sel) {
   return `<div class="chartbox"><canvas id="cn1"></canvas></div>
     ${ok.length < sel.length ? `<p class="note">Für ${sel.length - ok.length} Flug/Flüge fehlen Gyro-Daten mit genug Auflösung, sie erscheinen nicht im Graphen.</p>` : ""}
     <div class="scrollx" style="margin-top:20px"><table><thead><tr><th>Flug</th><th>Stärkster Peak</th><th>Peak-Stärke</th><th>Grundrauschen</th></tr></thead><tbody>
-      ${sel.map(f => `<tr><td><span style="color:${colorOf(f)}">■</span> ${esc(f.name)}</td>
+      ${sel.map(f => `<tr><td>${sw(f)}${esc(f.name)}</td>
         <td>${f.spec ? fmt(f.stats.peakHz, 0) + " Hz" : "–"}</td><td>${f.spec ? fmt(f.stats.peakDb, 1) + " dB" : "–"}</td>
         <td class="${f.spec && ok.length > 1 ? cls(f.stats.noiseDb, b, w) : ""}">${f.spec ? fmt(f.stats.noiseDb, 1) + " dB" : "–"}</td></tr>`).join("")}
     </tbody></table></div>
@@ -590,6 +681,41 @@ function funHTML() {
   }).join("")}</div>
   <p class="note">Alle Flüge im Vergleich. Die Namen der oben ausgewählten Flüge sind farbig hervorgehoben. Bei Tiefflug gewinnt der niedrigste Wert. Die Geschwindigkeit erscheint nur, wenn die CSV GPS-Daten enthält.</p>`;
 }
+
+
+/* ---------- Graustufen-Stil pro Flug ---------- */
+const dashed = f => flights.indexOf(f) % 8 >= 4;
+const sw = f => `<i class="sw ${dashed(f) ? "dash" : ""}" style="--c:${colorOf(f)}"></i>`;
+const getSel = () => flights.filter(f => selected.has(f.id));
+let query = "";
+const visible = () => { const q = query.trim().toLowerCase(); return q ? flights.filter(f => (f.name + " " + (f.loc || "")).toLowerCase().includes(q)) : flights; };
+
+/* ---------- Bühne: Slider und Stat-Leiste ---------- */
+function spark(f) {
+  const v = f.series.v, n = v.length; if (n < 2) return "";
+  const mn = Math.min(...v), mx = Math.max(...v), step = Math.max(1, Math.floor(n / 40));
+  const pts = v.filter((_, i) => i % step === 0).map((y, i, a) => `${(1 + i / (a.length - 1) * 38).toFixed(1)},${(37 - (y - mn) / ((mx - mn) || 1) * 33).toFixed(1)}`).join(" ");
+  return `<svg viewBox="0 0 40 40"><polyline points="${pts}" fill="none" stroke="${colorOf(f)}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" ${dashed(f) ? 'stroke-dasharray="4 3"' : ""}/></svg>`;
+}
+function renderStage() {
+  const vis = visible();
+  document.getElementById("thumbs").innerHTML = vis.length ? vis.map(f => `
+    <button class="th ${selected.has(f.id) ? "on" : ""}" data-id="${f.id}" title="${esc(f.name)}${f.loc ? " @ " + esc(f.loc) : ""} · ${f.date}">
+      <span class="c">${spark(f)}</span><span class="n">${esc(f.name)}</span></button>`).join("")
+    : `<div class="none">${flights.length ? "Kein Flug gefunden." : "Noch keine Flüge. Lade ein Log hoch oder starte mit Beispieldaten."}</div>`;
+  const sel = getSel(), cur = sel[sel.length - 1], prev = cur && flights[flights.indexOf(cur) - 1];
+  const items = [["dur", "Flugzeit"], ["minV", "Min. Spannung"], ["maxA", "Max. Strom"], ["mah", "Verbrauch"]].map(([k, label]) => ({ s: STATS[k], label }))
+    .concat([{ s: { unit: "km/h", dec: 0, better: "high", get: f => f.stats.maxSpeed }, label: "Höchstgeschw." }]);
+  document.getElementById("statbar").innerHTML = items.map(({ s, label }) => {
+    const v = cur ? s.get(cur) : null;
+    let d = "";
+    if (cur && prev && v != null && s.get(prev) != null) { const dv = v - s.get(prev); d = Math.abs(dv) < 1e-9 ? "wie " + esc(prev.name) : (dv > 0 ? "↑ +" : "↓ ") + fmt(dv, s.dec) + " ggü. " + esc(prev.name); }
+    return `<div class="st"><div class="v">${fmt(v, s.dec)}${v != null ? `<small>${s.unit}</small>` : ""}</div><div class="k">${label}</div><div class="d">${d || (cur ? (cur.loc ? "@ " + esc(cur.loc) : esc(cur.name)) : "")}</div></div>`;
+  }).join("");
+}
+
+/* ---------- Karten ---------- */
+const ORDER = ["compare", "stats", "trend", "battery", "motor", "noise", "fun", "list"];
 function compareHTML(sel) {
   return `<div class="tabs">${Object.entries(METRICS).map(([k, m]) => `<button class="tab ${k === metric ? "on" : ""}" data-m="${k}">${m.label}</button>`).join("")}</div>
     <div class="chartbox"><canvas id="c1"></canvas></div>${needSel(sel)}`;
@@ -598,65 +724,64 @@ function statsHTML(sel) {
   if (!sel.length) return needSel(sel);
   return `<div class="scrollx"><table>
       <thead><tr><th>Flug</th>${Object.values(STATS).map(s => `<th>${s.label}</th>`).join("")}</tr></thead>
-      <tbody>${sel.map(f => `<tr><td><span style="color:${colorOf(f)}">■</span> ${esc(f.name)}</td>${Object.values(STATS).map(s => {
+      <tbody>${sel.map(f => `<tr><td>${sw(f)}${esc(f.name)}</td>${Object.values(STATS).map(s => {
         const vals = sel.map(s.get), v = s.get(f);
         let c = "";
         if (sel.length > 1 && s.better) c = cls(v, s.better === "high" ? Math.max(...vals) : Math.min(...vals), s.better === "high" ? Math.min(...vals) : Math.max(...vals));
         return `<td class="${c}">${fmt(v, s.dec)} ${s.unit}</td>`;
       }).join("")}</tr>`).join("")}</tbody>
     </table></div>
-    <p class="note">Grün = bester, rot = schlechtester Wert im Vergleich. Der Verbrauch wird aus dem Strom berechnet.</p>`;
+    <p class="note">Fett = bester Wert, gepunktet unterstrichen = schlechtester Wert im Vergleich. Der Verbrauch wird aus dem Strom berechnet.</p>`;
 }
 function trendHTML() {
   return `<div class="row"><span class="note" style="margin:0">Zeigt, wie sich ein Wert von Flug zu Flug entwickelt, zum Beispiel ob dein Akku schwächer wird.</span>
       <select id="trendSel">${Object.entries(STATS).map(([k, s]) => `<option value="${k}" ${k === trendKey ? "selected" : ""}>${s.label}</option>`).join("")}</select></div>
     <div class="chartbox" style="height:260px"><canvas id="c2"></canvas></div>`;
 }
-const SECTION_HTML = { compare: compareHTML, stats: statsHTML, trend: trendHTML, battery: batteryHTML, motor: motorHTML, noise: noiseHTML, fun: funHTML };
+function listHTML() {
+  const vis = visible();
+  if (!vis.length) return `<div class="empty">${flights.length ? "Kein Flug gefunden." : "Noch keine Flüge."}</div>`;
+  return `<div class="scrollx"><table><thead><tr><th></th><th>Flug</th><th>Standort</th><th>Datum</th><th>Flugzeit</th><th>Verbrauch</th><th></th></tr></thead><tbody>
+    ${vis.map(f => `<tr><td style="width:36px"><input class="chk" type="checkbox" data-sel="${f.id}" ${selected.has(f.id) ? "checked" : ""} aria-label="Flug auswählen"></td>
+      <td>${sw(f)}${esc(f.name)}</td><td>${f.loc ? esc(f.loc) : "–"}</td><td>${f.date || "–"}</td><td>${fmt(f.stats.dur, 0)} s</td><td>${fmt(f.stats.mah, 0)} mAh</td>
+      <td class="rowact"><button data-edit="${f.id}">Bearbeiten</button><button data-del="${f.id}">Löschen</button></td></tr>`).join("")}
+  </tbody></table></div>
+  <p class="note">Mit dem Häkchen wählst du Flüge für alle Vergleiche aus. Die Suche oben rechts filtert diese Liste.</p>`;
+}
+const SECTION_HTML = { compare: compareHTML, stats: statsHTML, trend: trendHTML, battery: batteryHTML, motor: motorHTML, noise: noiseHTML, fun: funHTML, list: listHTML };
 
 function render() {
   Object.keys(charts).forEach(k => { charts[k].destroy(); delete charts[k]; });
-  if (!flights.length) {
-    app.innerHTML = `<div class="panel empty">Noch keine Flüge.<br>Lade Beispieldaten oder importiere eine CSV aus dem Betaflight Blackbox Explorer.</div>`;
-    return;
-  }
-  const sel = flights.filter(f => selected.has(f.id));
-  app.innerHTML = `
-    <div class="panel"><div class="label">Flüge</div>
-      <div class="chips">${flights.map(f => `
-        <div class="chip ${selected.has(f.id) ? "on" : ""}" style="--c:${colorOf(f)}" data-id="${f.id}">
-          <span class="dot"></span>${esc(f.name)}${f.loc ? ` <small class="loc">@ ${esc(f.loc)}</small>` : ""} <small>${f.date}</small>
-          <button class="x ed" data-edit="${f.id}" title="Name, Standort und Datum ändern">✎</button><button class="x" data-del="${f.id}" title="Flug löschen">×</button>
-        </div>`).join("")}
-      </div>
-    </div>
-    ${sel.length ? `<div class="panel"><div class="label">Status</div>${tilesHTML(sel)}</div>` : ""}
-    <div class="label group">Details</div>
-    ${Object.entries(SECTIONS).map(([id, s]) => `
-      <details class="panel fold" data-sec="${id}" ${openSecs.has(id) ? "open" : ""}>
-        <summary><span class="label">${s.title}</span><span class="hint">${s.hint}</span></summary>
-        <div class="fold-body">${SECTION_HTML[id](sel)}</div>
-      </details>`).join("")}`;
+  renderStage();
+  const sel = getSel();
+  document.getElementById("cards").innerHTML = flights.length ? ORDER.map(id => `
+    <details class="card" id="sec-${id}" data-sec="${id}" ${openSecs.has(id) ? "open" : ""}>
+      <summary><span class="ttl">${SECTIONS[id].title}</span><span class="hint">${SECTIONS[id].hint}</span></summary>
+      <div class="fold-body">${SECTION_HTML[id](sel)}</div>
+    </details>`).join("") : "";
   openSecs.forEach(id => drawSection(id, sel));
 }
 
-/* --- Charts --- */
+/* ---------- Diagramme (Graustufen) ---------- */
 function mk(id, cfg) { if (charts[id]) charts[id].destroy(); const el = document.getElementById(id); if (!el) return; charts[id] = new Chart(el, cfg); }
 function chartBase() {
-  Chart.defaults.color = "#8b93a0";
-  Chart.defaults.font.family = '"Rajdhani", system-ui, sans-serif';
-  Chart.defaults.font.size = 13;
+  Chart.defaults.color = "#8c8c8c";
+  Chart.defaults.font.family = '"Outfit", system-ui, sans-serif';
+  Chart.defaults.font.size = 12.5;
   return {
     maintainAspectRatio: false, animation: { duration: 400 },
     interaction: { mode: "index", intersect: false },
     plugins: {
-      legend: { labels: { usePointStyle: true, pointStyle: "rect", boxWidth: 10, font: { weight: "600" } } },
-      tooltip: { backgroundColor: "#08090b", borderColor: "#00f0ff", borderWidth: 1, titleColor: "#f2f4f7", bodyColor: "#d0d5dc", padding: 10, cornerRadius: 0 }
+      legend: { labels: { usePointStyle: true, pointStyle: "line", boxWidth: 24, font: { weight: "500" } } },
+      tooltip: { backgroundColor: "#111", titleColor: "#fff", bodyColor: "#e5e5e5", padding: 12, cornerRadius: 8, boxPadding: 4 }
     },
-    scales: { x: { grid: { color: "rgba(255,255,255,.05)" }, ticks: { maxTicksLimit: 10 } }, y: { grid: { color: "rgba(255,255,255,.05)" } } }
+    scales: { x: { grid: { color: "rgba(0,0,0,.06)" }, border: { display: false }, ticks: { maxTicksLimit: 10 } }, y: { grid: { color: "rgba(0,0,0,.06)" }, border: { display: false } } }
   };
 }
 const axisTitle = t => ({ display: true, text: t });
+const lineStyle = f => ({ borderColor: colorOf(f), backgroundColor: colorOf(f), borderDash: dashed(f) ? [6, 4] : [] });
+const trendLine = (data, label) => ({ label, data, borderColor: "#111", backgroundColor: "rgba(0,0,0,.05)", fill: true, borderWidth: 2.5, tension: .2, pointRadius: 5, pointBackgroundColor: "#fff", pointBorderColor: "#111", pointBorderWidth: 2 });
+
 function drawCompare(sel) {
   const m = METRICS[metric];
   const maxLen = Math.max(0, ...sel.map(f => f.series.t.length));
@@ -665,9 +790,7 @@ function drawCompare(sel) {
   opts.scales.y.title = axisTitle(m.unit ? m.label + " (" + m.unit + ")" : m.label);
   opts.plugins.tooltip.callbacks = { title: i => "t = " + i[0].label + " s", label: c => `${c.dataset.label}: ${fmt(c.parsed.y, m.dec)} ${m.unit}` };
   mk("c1", { type: "line", options: opts,
-    data: { labels: Array.from({ length: maxLen }, (_, i) => i), datasets: sel.map(f => ({
-      label: f.name, data: f.series[m.key], borderColor: colorOf(f), backgroundColor: colorOf(f),
-      borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, tension: .2, borderJoinStyle: "miter" })) } });
+    data: { labels: Array.from({ length: maxLen }, (_, i) => i), datasets: sel.map(f => ({ label: f.name, data: f.series[m.key], ...lineStyle(f), borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, tension: .2 })) } });
 }
 function drawTrend() {
   const s = STATS[trendKey];
@@ -675,28 +798,26 @@ function drawTrend() {
   opts.plugins.legend.display = false;
   opts.scales.y.title = axisTitle(s.label + (s.unit ? " (" + s.unit + ")" : ""));
   opts.plugins.tooltip.callbacks = { label: c => `${fmt(c.parsed.y, s.dec)} ${s.unit}` };
-  mk("c2", { type: "line", options: opts,
-    data: { labels: flights.map(f => f.name), datasets: [{ data: flights.map(s.get), borderColor: "#00f0ff", backgroundColor: "rgba(0,240,255,.14)", fill: true,
-      borderWidth: 2.5, tension: .15, pointRadius: 5, pointStyle: "rectRot", pointBackgroundColor: flights.map(colorOf), pointBorderWidth: 0 }] } });
+  mk("c2", { type: "line", options: opts, data: { labels: flights.map(f => f.name), datasets: [trendLine(flights.map(s.get), s.label)] } });
 }
 function drawSection(id, sel) {
-  sel = sel || flights.filter(f => selected.has(f.id));
+  sel = sel || getSel();
   if (id === "trend") return drawTrend();
   if (!sel.length) return;
   if (id === "compare") return drawCompare(sel);
   if (id === "battery") {
     const opts = chartBase();
     opts.interaction = { mode: "nearest", intersect: true };
-    opts.scales.x = { type: "linear", grid: opts.scales.x.grid, title: axisTitle("Strom (A)") };
+    opts.scales.x = { type: "linear", grid: opts.scales.x.grid, border: { display: false }, title: axisTitle("Strom (A)") };
     opts.scales.y.title = axisTitle("Spannung (V)");
     opts.plugins.legend.labels.filter = i => !i.text.endsWith(" Trend");
     opts.plugins.tooltip.callbacks = { label: c => `${c.dataset.label}: ${fmt(c.parsed.y, 2)} V bei ${fmt(c.parsed.x, 1)} A` };
     const ds = [];
     sel.forEach(f => {
       const col = colorOf(f);
-      ds.push({ label: f.name, type: "scatter", data: f.series.a.map((a, i) => ({ x: a, y: f.series.v[i] })).slice(3), backgroundColor: col + "99", borderColor: col + "99", pointRadius: 3 });
+      ds.push({ label: f.name, type: "scatter", data: f.series.a.map((a, i) => ({ x: a, y: f.series.v[i] })).slice(3), backgroundColor: col + "88", borderColor: col + "88", pointRadius: 3 });
       const ft = f.stats.fit;
-      if (ft) { const mx = Math.max(...f.series.a); ds.push({ label: f.name + " Trend", type: "scatter", showLine: true, borderColor: col, borderWidth: 2.5, pointRadius: 0,
+      if (ft) { const mx = Math.max(...f.series.a); ds.push({ label: f.name + " Trend", type: "scatter", showLine: true, borderColor: col, borderWidth: 2.5, borderDash: dashed(f) ? [6, 4] : [], pointRadius: 0,
         data: [0, mx].map(a => ({ x: a, y: ft.c0 - ft.ir / 1000 * a + ft.k * ft.mm })) }); }
     });
     mk("cb1", { type: "scatter", data: { datasets: ds }, options: opts });
@@ -704,40 +825,51 @@ function drawSection(id, sel) {
     o2.plugins.legend.display = false;
     o2.scales.y.title = axisTitle("Innenwiderstand (mΩ)");
     o2.plugins.tooltip.callbacks = { label: c => `${fmt(c.parsed.y, 0)} mΩ` };
-    mk("cb2", { type: "line", options: o2,
-      data: { labels: flights.map(f => f.name), datasets: [{ data: flights.map(f => f.stats.ir), borderColor: "#00f0ff", backgroundColor: "rgba(0,240,255,.14)", fill: true,
-        borderWidth: 2.5, tension: .15, pointRadius: 5, pointStyle: "rectRot", pointBackgroundColor: flights.map(colorOf), pointBorderWidth: 0 }] } });
+    mk("cb2", { type: "line", options: o2, data: { labels: flights.map(f => f.name), datasets: [trendLine(flights.map(f => f.stats.ir), "Innenwiderstand")] } });
   } else if (id === "motor") {
     const opts = chartBase();
     opts.scales.y.title = axisTitle("Abweichung vom Durchschnitt (%)");
+    opts.plugins.legend.labels.pointStyle = "rect"; opts.plugins.legend.labels.boxWidth = 12;
     opts.plugins.tooltip.callbacks = { label: c => `${c.dataset.label}: ${c.parsed.y >= 0 ? "+" : ""}${fmt(c.parsed.y, 1)} %` };
     mk("cm1", { type: "bar", options: opts,
-      data: { labels: ["M1", "M2", "M3", "M4"], datasets: sel.filter(f => motorDev(f)).map(f => ({ label: f.name, data: motorDev(f), backgroundColor: colorOf(f), borderWidth: 0 })) } });
+      data: { labels: ["M1", "M2", "M3", "M4"], datasets: sel.filter(f => motorDev(f)).map(f => ({ label: f.name, data: motorDev(f),
+        backgroundColor: dashed(f) ? "#fff" : colorOf(f), borderColor: colorOf(f), borderWidth: 2, borderRadius: 4 })) } });
   } else if (id === "noise") {
     const opts = chartBase();
-    opts.scales.x = { type: "linear", min: 20, max: 500, grid: opts.scales.x.grid, title: axisTitle("Frequenz (Hz)") };
+    opts.scales.x = { type: "linear", min: 20, max: 500, grid: opts.scales.x.grid, border: { display: false }, title: axisTitle("Frequenz (Hz)") };
     opts.scales.y.title = axisTitle("Stärke (dB)");
     opts.plugins.tooltip.callbacks = { title: i => fmt(i[0].parsed.x, 0) + " Hz", label: c => `${c.dataset.label}: ${fmt(c.parsed.y, 1)} dB` };
     mk("cn1", { type: "line", options: opts,
-      data: { datasets: sel.filter(f => f.spec).map(f => ({ label: f.name, borderColor: colorOf(f), backgroundColor: colorOf(f), borderWidth: 2, pointRadius: 0, tension: .2,
+      data: { datasets: sel.filter(f => f.spec).map(f => ({ label: f.name, ...lineStyle(f), borderWidth: 2, pointRadius: 0, tension: .2,
         data: f.spec.a.map((v, i) => ({ x: f.spec.f0 + i * f.spec.df, y: v })) })) } });
   }
 }
 
 /* ---------- Ereignisse ---------- */
-app.addEventListener("click", e => {
+const cardsEl = document.getElementById("cards");
+const toggleSel = id => { selected.has(id) ? selected.delete(id) : selected.add(id); render(); };
+document.getElementById("thumbs").addEventListener("click", e => { const t = e.target.closest(".th"); if (t) toggleSel(t.dataset.id); });
+document.getElementById("prev").onclick = () => document.getElementById("thumbs").scrollBy({ left: -220, behavior: "smooth" });
+document.getElementById("next").onclick = () => document.getElementById("thumbs").scrollBy({ left: 220, behavior: "smooth" });
+
+cardsEl.addEventListener("click", e => {
   const del = e.target.closest("[data-del]");
-  if (del) { e.stopPropagation(); flights = flights.filter(f => f.id !== del.dataset.del); selected.delete(del.dataset.del); save(); render(); return; }
+  if (del) {
+    const f = flights.find(x => x.id === del.dataset.del);
+    if (!f || !confirm("Flug „" + f.name + "“ löschen?")) return;
+    flights = flights.filter(x => x.id !== f.id); selected.delete(f.id); save(); render(); return;
+  }
   const ed = e.target.closest("[data-edit]");
-  if (ed) { e.stopPropagation(); editFlight(ed.dataset.edit); return; }
-  const chip = e.target.closest(".chip");
-  if (chip) { const id = chip.dataset.id; selected.has(id) ? selected.delete(id) : selected.add(id); render(); return; }
+  if (ed) { editFlight(ed.dataset.edit); return; }
   const tab = e.target.closest("[data-m]");
   if (tab) { metric = tab.dataset.m; render(); }
 });
-app.addEventListener("change", e => { if (e.target.id === "trendSel") { trendKey = e.target.value; render(); } });
+cardsEl.addEventListener("change", e => {
+  if (e.target.id === "trendSel") { trendKey = e.target.value; render(); return; }
+  if (e.target.dataset && e.target.dataset.sel) toggleSel(e.target.dataset.sel);
+});
 // Bereiche auf- und zuklappen: Diagramme erst zeichnen, wenn der Bereich sichtbar ist
-app.addEventListener("toggle", e => {
+cardsEl.addEventListener("toggle", e => {
   const id = e.target.dataset && e.target.dataset.sec; if (!id) return;
   if (e.target.open) {
     openSecs.add(id);
@@ -747,6 +879,34 @@ app.addEventListener("toggle", e => {
     SECTIONS[id].charts.forEach(c => { if (charts[c]) { charts[c].destroy(); delete charts[c]; } });
   }
 }, true);
+
+// Navigation und Sprungziele
+function goTo(id) {
+  if (id === "top") return window.scrollTo({ top: 0, behavior: "smooth" });
+  const d = document.getElementById("sec-" + id);
+  if (!d) return say("Lade zuerst Flüge, dann erscheinen die Auswertungen.");
+  if (!d.open) d.open = true;
+  d.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+document.addEventListener("click", e => { const a = e.target.closest("[data-go]"); if (a) { e.preventDefault(); goTo(a.dataset.go); } });
+const spyIds = [["top", "top"], ["compare", "sec-compare"], ["battery", "sec-battery"], ["fun", "sec-fun"], ["list", "sec-list"]];
+function spy() {
+  let cur = "top";
+  spyIds.forEach(([k, id]) => { const el = document.getElementById(id); if (el && el.getBoundingClientRect().top < innerHeight * 0.45 && k !== "top") cur = k; });
+  document.querySelectorAll("#menu a").forEach(a => a.classList.toggle("on", a.dataset.go === cur));
+}
+addEventListener("scroll", spy, { passive: true });
+
+// Suche und Menü
+const q = document.getElementById("q"), pop = document.getElementById("pop");
+document.getElementById("btnSearch").onclick = e => { const on = q.classList.toggle("open"); e.currentTarget.classList.toggle("on", on); if (on) q.focus(); else { q.value = ""; query = ""; renderStage(); refreshList(); } };
+function refreshList() { const b = document.querySelector("#sec-list .fold-body"); if (b) b.innerHTML = listHTML(); }
+q.addEventListener("input", () => { query = q.value; renderStage(); refreshList(); });
+document.getElementById("btnProfile").onclick = e => { e.stopPropagation(); pop.classList.toggle("open"); };
+document.addEventListener("click", e => { if (!e.target.closest("#pop") && !e.target.closest("#btnProfile")) pop.classList.remove("open"); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") pop.classList.remove("open"); });
+pop.addEventListener("click", e => { if (e.target.closest("button")) pop.classList.remove("open"); });
+
 // Flug umbenennen / Standort und Datum ändern
 const dlg = document.getElementById("dlg");
 let editId = null;
@@ -792,17 +952,22 @@ document.getElementById("fileBackup").onchange = async e => {
   } catch (err) { say("Backup konnte nicht geladen werden: " + err.message, true); }
 };
 document.getElementById("btnSample").onclick = addSamples;
+document.getElementById("linkSample").onclick = e => { e.preventDefault(); addSamples(); };
 document.getElementById("btnClear").onclick = () => {
   if (!flights.length || !confirm("Alle gespeicherten Flüge löschen?")) return;
   flights = []; selected.clear(); save(); render(); say("Alles gelöscht.");
 };
 document.getElementById("file").onchange = e => { importFiles([...e.target.files]); e.target.value = ""; };
-const drop = document.getElementById("drop");
-["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
-["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
-drop.addEventListener("drop", e => importFiles([...e.dataTransfer.files]));
+
+// Dateien irgendwo auf die Seite ziehen
+let dragN = 0; const over = document.getElementById("over");
+addEventListener("dragenter", e => { if (e.dataTransfer && [...e.dataTransfer.types].includes("Files")) { dragN++; over.classList.add("on"); } });
+addEventListener("dragleave", () => { dragN = Math.max(0, dragN - 1); if (!dragN) over.classList.remove("on"); });
+addEventListener("dragover", e => e.preventDefault());
+addEventListener("drop", e => { e.preventDefault(); dragN = 0; over.classList.remove("on"); if (e.dataTransfer.files.length) importFiles([...e.dataTransfer.files]); });
 
 render();
+spy();
 </script>
 </body>
 </html>
