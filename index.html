@@ -136,10 +136,15 @@
   .mlegend { display: flex; gap: 10px 24px; flex-wrap: wrap; font-size: .92rem; margin-bottom: 22px; }
   .mlegend span { display: inline-flex; align-items: center; gap: 8px; }
   .mlegend i { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--ink); }
-  .quads { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 16px; }
+  .quads { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr)); gap: 16px; }
   .quad { border: 2px solid var(--ink); border-radius: 6px; padding: 18px 20px 20px; }
   .quad > b { color: var(--ink); font-weight: 700; }
-  .quad svg { display: block; width: 100%; max-width: 300px; margin: 10px auto 6px; }
+  .qimg { position: relative; margin: 8px auto 10px; max-width: 400px; }
+  .qimg img { display: block; width: 100%; height: auto; mix-blend-mode: multiply; }
+  .mb { position: absolute; transform: translate(-50%, -50%); width: clamp(46px, 16%, 62px); aspect-ratio: 1; border-radius: 50%; border: 2.5px solid var(--ink); display: grid; place-content: center; text-align: center; font-weight: 800; font-size: .92rem; line-height: 1.05; box-shadow: 2px 2px 0 var(--ink); background: #E4E5E7; color: var(--ink); }
+  .mb small { font-size: .6rem; font-weight: 600; opacity: .8; }
+  .mb.l1 { background: var(--signal); }
+  .mb.l2 { background: var(--ink); color: var(--signal); }
   .verdict2 { font-size: .95rem; color: var(--text); padding: 10px 12px; border-radius: 4px; background: #eceded; }
   .verdict2.l1 { background: rgba(212,255,42,.55); color: var(--ink); }
   .verdict2.l2 { background: var(--ink); color: #e5e7ea; }
@@ -648,19 +653,11 @@ function motorDev(f) {
 }
 const MOTOR_LVL = [["ausgeglichen", "#E4E5E7", "#0D0E10", "best"], ["leicht ungleich", "#D4FF2A", "#0D0E10", ""], ["auffällig", "#0D0E10", "#D4FF2A", "worst"]];
 const motorLvl = d => { const a = Math.abs(d); return a < 5 ? 0 : a < 10 ? 1 : 2; };
-// Draufsicht, vorne unten (wie auf dem Foto): M1 hinten rechts, M2 vorne rechts, M3 hinten links, M4 vorne links
-const MOTOR_POS = [[50, 48], [50, 152], [210, 48], [210, 152]];
+// Motorpositionen im Foto (Prozent): M1 hinten rechts, M2 vorne rechts, M3 hinten links, M4 vorne links, vorne ist unten
+const MOTOR_POS = [[29.8, 29.6], [26.4, 72], [70.8, 27.8], [74.7, 73]];
 function quad(dev) {
-  const motors = MOTOR_POS.map(([x, y], i) => {
-    const [, fill, ink] = MOTOR_LVL[motorLvl(dev[i])];
-    return `<circle cx="${x}" cy="${y}" r="31" fill="${fill}" stroke="#0D0E10" stroke-width="2.5"/>
-      <text x="${x}" y="${y + 1}" text-anchor="middle" font-size="16" font-weight="800" fill="${ink}">${dev[i] >= 0 ? "+" : ""}${fmt(dev[i], 1)}</text>
-      <text x="${x}" y="${y + 17}" text-anchor="middle" font-size="11" font-weight="600" fill="${ink}" opacity=".8">Motor ${i + 1}</text>`;
-  }).join("");
-  return `<svg viewBox="0 0 260 205" role="img" aria-label="Abweichung der vier Motoren vom Durchschnitt in Prozent">
-    <g stroke="#0D0E10" stroke-width="9" stroke-linecap="round"><line x1="130" y1="100" x2="50" y2="48"/><line x1="130" y1="100" x2="210" y2="48"/><line x1="130" y1="100" x2="50" y2="152"/><line x1="130" y1="100" x2="210" y2="152"/></g>
-    <rect x="102" y="78" width="56" height="44" rx="10" fill="#0D0E10"/><path d="M122 126l8 9 8-9z" fill="#D4FF2A"/>
-    ${motors}<text x="130" y="200" text-anchor="middle" font-size="11" fill="#6a7078">vorne</text></svg>`;
+  return `<div class="qimg"><img src="drone.webp" alt="Drohne von oben mit den vier Motoren" width="1024" height="575">${MOTOR_POS.map(([x, y], i) =>
+    `<span class="mb l${motorLvl(dev[i])}" style="left:${x}%;top:${y}%">${dev[i] >= 0 ? "+" : ""}${fmt(dev[i], 1)}<small>Motor ${i + 1}</small></span>`).join("")}</div>`;
 }
 function motorHTML(sel) {
   if (!sel.length) return needSel(sel);
