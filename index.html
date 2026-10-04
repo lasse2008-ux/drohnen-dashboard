@@ -65,7 +65,7 @@
   /* Drohne mit Messpunkten */
   .bench { position: relative; }
   .bench img { display: block; width: 100%; height: auto; mix-blend-mode: multiply; user-select: none; -webkit-user-drag: none; }
-  .bench figcaption { margin-top: 30px; font-size: .88rem; color: var(--steel); text-align: center; }
+  .bench figcaption { margin-top: 14px; font-size: .88rem; color: var(--steel); text-align: center; }
   .hs { position: absolute; transform: translate(-50%, -50%); width: 22px; height: 22px; padding: 0; border-radius: 50%; background: var(--ink); box-shadow: 0 0 0 5px var(--signal), 0 0 0 6.5px var(--ink); animation: pop .5s cubic-bezier(.2,1.4,.4,1) both; animation-delay: calc(.5s + var(--i) * .13s); }
   @keyframes pop { from { opacity: 0; transform: translate(-50%, -50%) scale(.3); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
   .hs .lab { position: absolute; top: 50%; transform: translateY(-50%); white-space: nowrap; background: #fff; border: 1.5px solid var(--ink); border-radius: 5px; padding: 5px 11px; font-size: .84rem; font-weight: 600; color: var(--ink); box-shadow: 3px 3px 0 var(--ink); transition: background .15s; pointer-events: none; }
@@ -249,7 +249,7 @@
       <button class="hs r" style="left:74.7%;top:73%;--i:3" data-tab="motor" id="hs4"><span class="lab">Motor 4</span></button>
       <button class="hs r" style="left:50.3%;top:43.5%;--i:4" data-tab="noise" id="hsN"><span class="lab">Vibrationen</span></button>
       <button class="hs r" style="left:50.8%;top:60%;--i:5" data-tab="battery" id="hsB"><span class="lab">Akku</span></button>
-      <button class="hs d" style="left:49.3%;top:86%;--i:6" data-tab="fun" id="hsR"><span class="lab">Rekorde</span></button>
+      <button class="hs r" style="left:49.3%;top:86%;--i:6" data-tab="fun" id="hsR"><span class="lab">Rekorde</span></button>
       <figcaption>Tippe auf einen Punkt, um die passende Auswertung zu öffnen.</figcaption>
     </figure>
   </section>
@@ -854,13 +854,25 @@ function drawSection(id, sel) {
     o2.plugins.tooltip.callbacks = { label: c => `${fmt(c.parsed.y, 0)} mΩ` };
     mk("cb2", { type: "line", options: o2, data: { labels: flights.map(f => f.name), datasets: [trendLine(flights.map(f => f.stats.ir), "Innenwiderstand")] } });
   } else if (id === "motor") {
-    const opts = chartBase();
-    opts.scales.y.title = axisTitle("Abweichung vom Durchschnitt (%)");
+    const opts = chartBase(), sets = sel.filter(f => motorDev(f));
+    const lim = Math.max(5, Math.ceil(Math.max(...sets.flatMap(motorDev).map(Math.abs)) / 5) * 5);
     opts.plugins.legend.labels.pointStyle = "rect"; opts.plugins.legend.labels.boxWidth = 12;
     opts.plugins.tooltip.callbacks = { label: c => `${c.dataset.label}: ${c.parsed.y >= 0 ? "+" : ""}${fmt(c.parsed.y, 1)} %` };
-    mk("cm1", { type: "bar", options: opts,
-      data: { labels: ["Motor 1", "Motor 2", "Motor 3", "Motor 4"], datasets: sel.filter(f => motorDev(f)).map(f => ({ label: f.name, data: motorDev(f),
-        backgroundColor: dashed(f) ? "#fff" : colorOf(f), borderColor: colorOf(f), borderWidth: 2, borderRadius: 3 })) } });
+    opts.scales.x = { grid: { display: false }, border: { display: false }, ticks: { font: { weight: "600", size: 14 }, color: "#0D0E10", padding: 8 } };
+    opts.scales.y = { min: -lim, max: lim, border: { display: false }, ticks: { stepSize: lim / 2, callback: v => (v > 0 ? "+" : "") + v + " %" },
+      grid: { color: c => c.tick.value === 0 ? "#0D0E10" : "rgba(13,14,16,.07)", lineWidth: c => c.tick.value === 0 ? 2 : 1 } };
+    opts.layout = { padding: { top: 18, bottom: 6 } };
+    // Wert über bzw. unter jedem Balken, solange es nicht zu eng wird
+    const labels = { id: "barLabels", afterDatasetsDraw(ch) {
+      if (sets.length > 3) return;
+      const { ctx } = ch; ctx.save(); ctx.font = '600 12px "Archivo", sans-serif'; ctx.fillStyle = "#0D0E10"; ctx.textAlign = "center";
+      ch.data.datasets.forEach((d, i) => ch.getDatasetMeta(i).data.forEach((b, j) => {
+        const v = d.data[j]; ctx.textBaseline = v >= 0 ? "bottom" : "top";
+        ctx.fillText((v >= 0 ? "+" : "") + v.toFixed(1), b.x, v >= 0 ? b.y - 4 : b.y + 4);
+      })); ctx.restore(); } };
+    mk("cm1", { type: "bar", options: opts, plugins: [labels],
+      data: { labels: ["Motor 1", "Motor 2", "Motor 3", "Motor 4"], datasets: sets.map(f => ({ label: f.name, data: motorDev(f),
+        backgroundColor: dashed(f) ? "#fff" : colorOf(f), borderColor: colorOf(f), borderWidth: dashed(f) ? 2 : 0, borderSkipped: false, categoryPercentage: .72, barPercentage: .85 })) } });
   } else if (id === "noise") {
     const opts = chartBase();
     opts.scales.x = { type: "linear", min: 20, max: 500, grid: opts.scales.x.grid, border: opts.scales.x.border, title: axisTitle("Frequenz (Hz)") };
