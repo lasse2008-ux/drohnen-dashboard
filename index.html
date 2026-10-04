@@ -5,11 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Drohnen-Telemetrie</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230D0E10'/%3E%3Cg stroke='%23D4FF2A' stroke-width='2' stroke-linecap='round'%3E%3Cline x1='9' y1='9' x2='23' y2='23'/%3E%3Cline x1='23' y1='9' x2='9' y2='23'/%3E%3C/g%3E%3Crect x='12.5' y='12.5' width='7' height='7' rx='1.5' fill='%23D4FF2A'/%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="chart.umd.min.js"></script>
 <style>
+  @font-face { font-family: "Archivo"; font-style: normal; font-weight: 100 900; font-stretch: 62% 125%; font-display: swap; src: url(archivo-latin.woff2) format("woff2"); }
   :root {
     --paper: #E4E5E7; --sheet: #fff; --ink: #0D0E10; --carbon: #17181B; --text: #3b3f45; --steel: #6a7078; --line: #c7c9ce;
     --signal: #D4FF2A; --ui: "Archivo", "Segoe UI", system-ui, sans-serif;
@@ -187,6 +185,8 @@
   .rowact button:hover { color: var(--ink); border-color: var(--ink); }
   .chk { width: 19px; height: 19px; accent-color: var(--ink); cursor: pointer; }
 
+  .legal { flex-basis: 100%; max-width: 90ch; font-size: .85rem; line-height: 1.6; }
+  .legal b { color: var(--ink); }
   .contact { flex-basis: 100%; font-size: 1rem; color: var(--text); }
   .contact b { color: var(--ink); }
   .contact a { color: var(--ink); font-weight: 600; text-underline-offset: 4px; }
@@ -291,6 +291,7 @@
     <span class="contact"><b>Kontakt:</b> Lasse · <a href="mailto:lasse.behrens2008@gmail.com">lasse.behrens2008@gmail.com</a></span>
     <span>Alle Daten bleiben in deinem Browser. Es wird nichts hochgeladen.</span>
     <span>Drohnenbild: KI-generiert.</span>
+    <p class="legal"><b>Datenschutz:</b> Diese Seite nutzt keine Cookies und kein Tracking. Schrift und Diagramme werden von dieser Seite selbst geladen, es gehen keine Daten an Dritte. Die Seite liegt bei GitHub Pages, dabei verarbeitet GitHub technisch bedingt IP-Adressen. Deine Flugdaten bleiben in deinem Browser und werden nicht hochgeladen. Verantwortlich: Lasse, Kontakt siehe oben.<br><b>Hinweis:</b> Alle Auswertungen sind Schätzungen, Angaben ohne Gewähr.</p>
   </footer>
 </main>
 
