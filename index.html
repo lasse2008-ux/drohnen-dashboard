@@ -133,6 +133,16 @@
   td.best { font-weight: 800; background: rgba(212,255,42,.45); }
   td.worst { color: var(--steel); text-decoration: underline dotted; text-underline-offset: 4px; }
   .scrollx { overflow-x: auto; }
+  .mlegend { display: flex; gap: 10px 24px; flex-wrap: wrap; font-size: .92rem; margin-bottom: 22px; }
+  .mlegend span { display: inline-flex; align-items: center; gap: 8px; }
+  .mlegend i { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--ink); }
+  .quads { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 16px; }
+  .quad { border: 2px solid var(--ink); border-radius: 6px; padding: 18px 20px 20px; }
+  .quad > b { color: var(--ink); font-weight: 700; }
+  .quad svg { display: block; width: 100%; max-width: 300px; margin: 10px auto 6px; }
+  .verdict2 { font-size: .95rem; color: var(--text); padding: 10px 12px; border-radius: 4px; background: #eceded; }
+  .verdict2.l1 { background: rgba(212,255,42,.55); color: var(--ink); }
+  .verdict2.l2 { background: var(--ink); color: #e5e7ea; }
   .sw { display: inline-block; width: 22px; height: 0; border-top: 3px solid var(--c); margin-right: 10px; vertical-align: middle; }
   .sw.dash { border-top-style: dashed; }
 
@@ -322,7 +332,7 @@ const SECTIONS = {
   stats:   { title: "Kennzahlen",      hint: "Tabelle mit besten und schlechtesten Werten", charts: [] },
   trend:   { title: "Verlauf",         hint: "Ein Wert über alle Flüge", charts: ["c2"] },
   battery: { title: "Akku-Gesundheit", hint: "Innenwiderstand und Spannungseinbruch", charts: ["cb1", "cb2"] },
-  motor:   { title: "Motorbalance",    hint: "Arbeiten alle vier Motoren gleich viel?", charts: ["cm1"] },
+  motor:   { title: "Motorbalance",    hint: "Arbeiten alle vier Motoren gleich viel?", charts: [] },
   noise:   { title: "Rauschspektrum",  hint: "Vibrationen nach Frequenz", charts: ["cn1"] },
   fun:     { title: "Rekorde",         hint: "Schnellster, tiefster, stärkster Flug", charts: [] },
   list:    { title: "Flugliste",       hint: "Alle Flüge verwalten, benennen und auswählen", charts: [] }
@@ -636,18 +646,40 @@ function motorDev(f) {
   const mean = avg(m);
   return m.map(v => (v - mean) / mean * 100);
 }
+const MOTOR_LVL = [["ausgeglichen", "#E4E5E7", "#0D0E10", "best"], ["leicht ungleich", "#D4FF2A", "#0D0E10", ""], ["auffällig", "#0D0E10", "#D4FF2A", "worst"]];
+const motorLvl = d => { const a = Math.abs(d); return a < 5 ? 0 : a < 10 ? 1 : 2; };
+// Draufsicht, vorne unten (wie auf dem Foto): M1 hinten rechts, M2 vorne rechts, M3 hinten links, M4 vorne links
+const MOTOR_POS = [[50, 48], [50, 152], [210, 48], [210, 152]];
+function quad(dev) {
+  const motors = MOTOR_POS.map(([x, y], i) => {
+    const [, fill, ink] = MOTOR_LVL[motorLvl(dev[i])];
+    return `<circle cx="${x}" cy="${y}" r="31" fill="${fill}" stroke="#0D0E10" stroke-width="2.5"/>
+      <text x="${x}" y="${y + 1}" text-anchor="middle" font-size="16" font-weight="800" fill="${ink}">${dev[i] >= 0 ? "+" : ""}${fmt(dev[i], 1)}</text>
+      <text x="${x}" y="${y + 17}" text-anchor="middle" font-size="11" font-weight="600" fill="${ink}" opacity=".8">Motor ${i + 1}</text>`;
+  }).join("");
+  return `<svg viewBox="0 0 260 205" role="img" aria-label="Abweichung der vier Motoren vom Durchschnitt in Prozent">
+    <g stroke="#0D0E10" stroke-width="9" stroke-linecap="round"><line x1="130" y1="100" x2="50" y2="48"/><line x1="130" y1="100" x2="210" y2="48"/><line x1="130" y1="100" x2="50" y2="152"/><line x1="130" y1="100" x2="210" y2="152"/></g>
+    <rect x="102" y="78" width="56" height="44" rx="10" fill="#0D0E10"/><path d="M122 126l8 9 8-9z" fill="#D4FF2A"/>
+    ${motors}<text x="130" y="200" text-anchor="middle" font-size="11" fill="#6a7078">vorne</text></svg>`;
+}
 function motorHTML(sel) {
   if (!sel.length) return needSel(sel);
-  const devs = sel.map(motorDev), spread = devs.map(d => d ? Math.max(...d) - Math.min(...d) : null);
-  return `<div class="sublabel" style="margin-top:0">Abweichung jedes Motors vom Durchschnitt aller vier</div>
-    <div class="chartbox" style="height:300px"><canvas id="cm1"></canvas></div>
-    <div class="scrollx" style="margin-top:20px"><table><thead><tr><th>Flug</th><th>M1</th><th>M2</th><th>M3</th><th>M4</th><th>Unterschied</th><th>Bewertung</th></tr></thead><tbody>
-      ${sel.map((f, i) => `<tr><td>${sw(f)}${esc(f.name)}</td>
-        ${f.stats.mAvg.map(v => `<td>${fmt(v, 1)} %</td>`).join("")}
-        <td>${fmt(spread[i], 1)} %</td>
-        <td class="${spread[i] == null ? "" : spread[i] > 20 ? "worst" : spread[i] > 10 ? "" : "best"}">${spread[i] == null ? "keine Daten" : spread[i] > 20 ? "auffällig" : spread[i] > 10 ? "leicht ungleich" : "ausgeglichen"}</td></tr>`).join("")}
+  const ok = sel.filter(motorDev);
+  const worst = d => d.reduce((m, v, i) => Math.abs(v) > Math.abs(d[m]) ? i : m, 0);
+  const verdict = d => {
+    const w = worst(d), lv = motorLvl(d[w]);
+    const t = lv === 0 ? "Alle vier Motoren arbeiten etwa gleich viel."
+      : `Motor ${w + 1} arbeitet ${fmt(Math.abs(d[w]), 1)} % ${d[w] > 0 ? "mehr" : "weniger"} als der Durchschnitt.${lv === 2 ? " Prüfe Propeller und Lager dieses Motors." : ""}`;
+    return `<p class="verdict2 l${lv}">${t}</p>`;
+  };
+  return `<div class="mlegend"><span><i style="background:#E4E5E7"></i>ausgeglichen (unter 5 % Abweichung)</span><span><i style="background:#D4FF2A"></i>leicht ungleich (5 bis 10 %)</span><span><i style="background:#0D0E10"></i>auffällig (über 10 %)</span></div>
+    <div class="quads">${sel.map(f => { const d = motorDev(f);
+      return `<div class="quad"><b>${sw(f)}${esc(f.name)}</b>${d ? quad(d) + verdict(d) : `<p class="note">Für diesen Flug fehlen Motor-Daten.</p>`}</div>`; }).join("")}</div>
+    <div class="scrollx" style="margin-top:24px"><table><thead><tr><th>Flug</th><th>Motor 1</th><th>Motor 2</th><th>Motor 3</th><th>Motor 4</th><th>Größte Abweichung</th><th>Bewertung</th></tr></thead><tbody>
+      ${ok.map(f => { const d = motorDev(f), m = Math.max(...d.map(Math.abs)), lv = MOTOR_LVL[motorLvl(m)];
+        return `<tr><td>${sw(f)}${esc(f.name)}</td>${f.stats.mAvg.map(v => `<td>${fmt(v, 1)} %</td>`).join("")}<td>${fmt(m, 1)} %</td><td class="${lv[3]}">${lv[0]}</td></tr>`; }).join("")}
     </tbody></table></div>
-    <p class="note">M1 bis M4 sind die vier Motorausgänge in Betaflight. Die Balken zeigen, ob ein Motor im Schnitt mehr Leistung ausgeben muss als die anderen. Ein dauerhaft höherer Wert kann auf einen verbogenen Propeller, ein müdes Lager oder einen verschobenen Schwerpunkt hindeuten. Die Grenzen (10 % und 20 %) sind grobe Richtwerte.</p>`;
+    <p class="note">Die Zahlen zeigen, wie viel mehr (+) oder weniger (−) ein Motor im Vergleich zum Durchschnitt aller vier arbeitet. Motor 1 bis 4 sind die Motorausgänge in Betaflight. Ein Motor, der dauerhaft deutlich mehr arbeitet, deutet auf einen verbogenen Propeller, ein müdes Lager oder einen verschobenen Schwerpunkt hin. Die Grenzen (5 % und 10 %) sind grobe Richtwerte.</p>`;
 }
 function noiseHTML(sel) {
   if (!sel.length) return needSel(sel);
@@ -853,26 +885,6 @@ function drawSection(id, sel) {
     o2.scales.y.title = axisTitle("Innenwiderstand (mΩ)");
     o2.plugins.tooltip.callbacks = { label: c => `${fmt(c.parsed.y, 0)} mΩ` };
     mk("cb2", { type: "line", options: o2, data: { labels: flights.map(f => f.name), datasets: [trendLine(flights.map(f => f.stats.ir), "Innenwiderstand")] } });
-  } else if (id === "motor") {
-    const opts = chartBase(), sets = sel.filter(f => motorDev(f));
-    const lim = Math.max(5, Math.ceil(Math.max(...sets.flatMap(motorDev).map(Math.abs)) / 5) * 5);
-    opts.plugins.legend.labels.pointStyle = "rect"; opts.plugins.legend.labels.boxWidth = 12;
-    opts.plugins.tooltip.callbacks = { label: c => `${c.dataset.label}: ${c.parsed.y >= 0 ? "+" : ""}${fmt(c.parsed.y, 1)} %` };
-    opts.scales.x = { grid: { display: false }, border: { display: false }, ticks: { font: { weight: "600", size: 14 }, color: "#0D0E10", padding: 8 } };
-    opts.scales.y = { min: -lim, max: lim, border: { display: false }, ticks: { stepSize: lim / 2, callback: v => (v > 0 ? "+" : "") + v + " %" },
-      grid: { color: c => c.tick.value === 0 ? "#0D0E10" : "rgba(13,14,16,.07)", lineWidth: c => c.tick.value === 0 ? 2 : 1 } };
-    opts.layout = { padding: { top: 18, bottom: 6 } };
-    // Wert über bzw. unter jedem Balken, solange es nicht zu eng wird
-    const labels = { id: "barLabels", afterDatasetsDraw(ch) {
-      if (sets.length > 3) return;
-      const { ctx } = ch; ctx.save(); ctx.font = '600 12px "Archivo", sans-serif'; ctx.fillStyle = "#0D0E10"; ctx.textAlign = "center";
-      ch.data.datasets.forEach((d, i) => ch.getDatasetMeta(i).data.forEach((b, j) => {
-        const v = d.data[j]; ctx.textBaseline = v >= 0 ? "bottom" : "top";
-        ctx.fillText((v >= 0 ? "+" : "") + v.toFixed(1), b.x, v >= 0 ? b.y - 4 : b.y + 4);
-      })); ctx.restore(); } };
-    mk("cm1", { type: "bar", options: opts, plugins: [labels],
-      data: { labels: ["Motor 1", "Motor 2", "Motor 3", "Motor 4"], datasets: sets.map(f => ({ label: f.name, data: motorDev(f),
-        backgroundColor: dashed(f) ? "#fff" : colorOf(f), borderColor: colorOf(f), borderWidth: dashed(f) ? 2 : 0, borderSkipped: false, categoryPercentage: .72, barPercentage: .85 })) } });
   } else if (id === "noise") {
     const opts = chartBase();
     opts.scales.x = { type: "linear", min: 20, max: 500, grid: opts.scales.x.grid, border: opts.scales.x.border, title: axisTitle("Frequenz (Hz)") };
